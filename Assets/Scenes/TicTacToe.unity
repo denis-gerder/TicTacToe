@@ -270,6 +270,7 @@ MonoBehaviour:
   canvas: {fileID: 1220297392}
   tilePrefab: {fileID: 2603811997576117345, guid: 50c9f920969d12949898118b56a35dd5, type: 3}
   width: 3
+  playerCount: 2
 --- !u!4 &1200753424
 Transform:
   m_ObjectHideFlags: 0

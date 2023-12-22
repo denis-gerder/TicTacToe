@@ -7,6 +7,8 @@ using UnityEngine.UI;
 
 public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler, IPointerExitHandler
 {
+    [SerializeField] private GameObject playerPrefab;
+    
     private Image _image;
     
     private void Awake()
@@ -26,7 +28,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
     
     public void OnPointerDown(PointerEventData eventData)
     {
-        Debug.Log("Clicked on tile");
+        GameObject playerInstance = Instantiate(playerPrefab, transform);
     }
 
     private IEnumerator FadeInVisual(Image image)
