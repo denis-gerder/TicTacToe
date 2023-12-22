@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -28,7 +29,12 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
     
     public void OnPointerDown(PointerEventData eventData)
     {
-        GameObject playerInstance = Instantiate(playerPrefab, transform);
+        GameObject playerSymbol = Instantiate(playerPrefab, transform);
+        Grid.PlayerPerTile[gameObject] = playerSymbol;
+        
+        
+        if(GameManager.Instance.CurrentPlayer != GameManager.Instance.PlayerCount) GameManager.Instance.CurrentPlayer++;
+        else GameManager.Instance.CurrentPlayer = 1;
     }
 
     private IEnumerator FadeInVisual(Image image)

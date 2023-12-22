@@ -17,6 +17,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Range(2, 5)] private int playerCount = 2;
     public int PlayerCount => playerCount;
 
+    private int _currentPlayer = 1;
+
+    public int CurrentPlayer
+    {
+        get => _currentPlayer;
+        set => _currentPlayer = value;
+    }
+
     private int[] _players;
     public int[] Players => _players;
 
@@ -24,8 +32,6 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         Grid grid = new Grid(canvas, tilePrefab, width);
-        _players = new int[playerCount];
-        for(int i = 1; i <= playerCount; i++) _players[i-1] = i;
     }
     
 }
