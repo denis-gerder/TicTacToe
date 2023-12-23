@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4188213194115866270}
   - component: {fileID: 8752829166971065190}
   m_Layer: 0
-  m_Name: Player
+  m_Name: PlayerTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -68,7 +68,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 0}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
