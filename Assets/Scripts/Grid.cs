@@ -19,8 +19,12 @@ public class Grid
     
     //width of the grid
     private int _gridWidth;
+
+    public int GridWidth => _gridWidth;
+
+    public static event Action<bool, int> OnGameOver;
     
-    public static event Action<bool> OnGameOver;
+    public static event Action OnTurnEnd;
     
     public Grid(GameObject canvas, GameObject tilePrefab, int gridWidth)
     {
@@ -65,17 +69,15 @@ public class Grid
     
     private void HandlePlayerTilePlaced(int player)
     {
-        if (CheckForWin())
-        {
-            OnGameOver?.Invoke(true);
-            return;
-        }
+        //check if game is won or if it's a draw
+        bool isGameWon = CheckForWin();
+        if(isGameWon) OnGameOver?.Invoke(true, player);
         
         GameManager.Instance.round++;
-        if (GameManager.Instance.round == _gridWidth * _gridWidth)
-        {
-            OnGameOver?.Invoke(false);
-        }
+        if(GameManager.Instance.round == _gridWidth * _gridWidth && !isGameWon) OnGameOver?.Invoke(false, player);
+        
+        //end turn
+        OnTurnEnd?.Invoke();
     }
     
     public bool CheckForWin()
