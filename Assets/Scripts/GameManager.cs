@@ -17,24 +17,21 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Range(2, 5)] private int playerCount = 2;
     public int PlayerCount => playerCount;
 
-    private int _currentPlayer = 1;
-    public int CurrentPlayer
-    {
-        get => _currentPlayer;
-        set => _currentPlayer = value;
-    }
+    [HideInInspector] public int currentPlayer = 1;
+
+    [HideInInspector] public int round = 0;
 
     //Spawn Grid and populate player array
     private void Awake()
     {
         Instance = this;
         Grid grid = new Grid(canvas, tilePrefab, width);
-        TileHandler.OnGameOver += HandleGameOver;
+        Grid.OnGameOver += HandleGameOver;
     }
     
     private void HandleGameOver(bool isGameWon)
     {
-        if(isGameWon) Debug.Log($"Player {_currentPlayer} won the game!");
+        if(isGameWon) Debug.Log($"Player {currentPlayer} won the game!");
         else Debug.Log("Draw!");
     }
     
