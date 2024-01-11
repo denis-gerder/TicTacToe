@@ -39,8 +39,7 @@ public class EnemyAI : TileHandler
         //get random empty tile and place player tile with reference in grid
         GameObject emptyTile = emptyTiles[Random.Range(0, emptyTiles.Count)];
         GameObject enemyAITile = Instantiate(playerPrefab, emptyTile.transform);
-        enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1].Sprite;
-        enemyAITile.GetComponent<Image>().color = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1].Color;
+        enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
         Grid.Instance.PlayerPerTile[emptyTile] = enemyAITile;
     }
 }

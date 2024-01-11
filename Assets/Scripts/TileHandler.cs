@@ -15,6 +15,12 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
     private Image _image;
     
     protected bool _gameOver = false;
+
+    //Opacity of the Mouse Over Visual in percent
+    private const int MouseOverOpacity = 50;
+    
+    //Intensity of the Mouse Over Visual (How many steps it takes to fade in/out)
+    private const int MouseOverFadeIntensity = 10;
     
     public static event Action<int> OnPlayerTilePlaced;
     
@@ -45,8 +51,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
         
         //spawn player tile and set reference to tile in grid
         GameObject playerTile = Instantiate(playerPrefab, transform);
-        playerTile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1].Sprite;
-        playerTile.GetComponent<Image>().color = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1].Color;
+        playerTile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
         Grid.Instance.PlayerPerTile[gameObject.transform.parent.gameObject] = playerTile;
         
         StartCoroutine(FadeOutVisual(_image));
@@ -59,7 +64,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
 
     private IEnumerator FadeInVisual(Image image)
     {
-        for (float i = 0; i <= 10; i++)
+        for (float i = 0; i <= MouseOverOpacity / MouseOverFadeIntensity; i++)
         {
             Color tempColor = image.color;
             tempColor.a = i/10;
@@ -70,7 +75,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
     
     private IEnumerator FadeOutVisual(Image image)
     {
-        for (float i = 10; i >= 0; i--)
+        for (float i = MouseOverOpacity / MouseOverFadeIntensity; i >= 0; i--)
         {
             Color tempColor = image.color;
             tempColor.a = i/10;
