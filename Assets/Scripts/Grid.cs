@@ -19,8 +19,12 @@ public class Grid
     
     //width of the grid
     private int _gridWidth;
+
+    public int GridWidth => _gridWidth;
+
+    public static event Action<bool, int> OnGameOver;
     
-    public static event Action<bool> OnGameOver;
+    public static event Action OnTurnEnd;
     
     public Grid(GameObject canvas, GameObject tilePrefab, int gridWidth)
     {
@@ -65,17 +69,15 @@ public class Grid
     
     private void HandlePlayerTilePlaced(int player)
     {
-        if (CheckForWin())
-        {
-            OnGameOver?.Invoke(true);
-            return;
-        }
+        //check if game is won or if it's a draw
+        bool isGameWon = CheckForWin();
+        if(isGameWon) OnGameOver?.Invoke(true, player);
         
         GameManager.Instance.round++;
-        if (GameManager.Instance.round == _gridWidth * _gridWidth)
-        {
-            OnGameOver?.Invoke(false);
-        }
+        if(GameManager.Instance.round == _gridWidth * _gridWidth && !isGameWon) OnGameOver?.Invoke(false, player);
+        
+        //end turn
+        OnTurnEnd?.Invoke();
     }
     
     public bool CheckForWin()
@@ -88,13 +90,13 @@ public class Grid
         for (int row = 0; row < Instance._gridWidth; row++)
         {
             if(Instance.PlayerPerTile[Instance.TileMatrix[row, 0]] == null) continue;
-            Color playerColor = Instance.PlayerPerTile[Instance.TileMatrix[row, 0]].GetComponent<Image>().color;
+            Sprite playerSymbol = Instance.PlayerPerTile[Instance.TileMatrix[row, 0]].GetComponent<Image>().sprite;
             
             int playerTilesInRow = 1;
             for (int col = 1; col < Instance._gridWidth; col++)
             {
                 if(Instance.PlayerPerTile[Instance.TileMatrix[row, col]] == null) break;
-                if(playerColor != Instance.PlayerPerTile[Instance.TileMatrix[row, col]].GetComponent<Image>().color) break;
+                if(playerSymbol != Instance.PlayerPerTile[Instance.TileMatrix[row, col]].GetComponent<Image>().sprite) break;
                 playerTilesInRow++;
             }
             if(playerTilesInRow == Instance._gridWidth) return true;
@@ -107,13 +109,13 @@ public class Grid
         for (int col = 0; col < Instance._gridWidth; col++)
         {
             if(Instance.PlayerPerTile[Instance.TileMatrix[0, col]] == null) continue;
-            Color playerColor = Instance.PlayerPerTile[Instance.TileMatrix[0, col]].GetComponent<Image>().color;
+            Sprite playerSymbol = Instance.PlayerPerTile[Instance.TileMatrix[0, col]].GetComponent<Image>().sprite;
             
             int playerTilesInCol = 1;
             for (int row = 1; row < Instance._gridWidth; row++)
             {
                 if(Instance.PlayerPerTile[Instance.TileMatrix[row, col]] == null) break;
-                if(playerColor != Instance.PlayerPerTile[Instance.TileMatrix[row, col]].GetComponent<Image>().color) break;
+                if(playerSymbol != Instance.PlayerPerTile[Instance.TileMatrix[row, col]].GetComponent<Image>().sprite) break;
                 playerTilesInCol++;
             }
             if(playerTilesInCol == Instance._gridWidth) return true;
@@ -126,14 +128,14 @@ public class Grid
         int playerTilesInDgl1 = 0;
         if (Instance.PlayerPerTile[Instance.TileMatrix[0, 0]] != null)
         {
-            Color playerColor1 = Instance.PlayerPerTile[Instance.TileMatrix[0, 0]].GetComponent<Image>().color;
+            Sprite playerSymbol1 = Instance.PlayerPerTile[Instance.TileMatrix[0, 0]].GetComponent<Image>().sprite;
 
             playerTilesInDgl1 = 1;
 
             for (int row = 1; row < Instance._gridWidth; row++)
             {
                 if (Instance.PlayerPerTile[Instance.TileMatrix[row, row]] == null) break;
-                if (playerColor1 != Instance.PlayerPerTile[Instance.TileMatrix[row, row]].GetComponent<Image>().color) break;
+                if (playerSymbol1 != Instance.PlayerPerTile[Instance.TileMatrix[row, row]].GetComponent<Image>().sprite) break;
                 playerTilesInDgl1++;
             }
         }
@@ -141,7 +143,7 @@ public class Grid
         int playerTilesInDgl2 = 0;
         if (Instance.PlayerPerTile[Instance.TileMatrix[0, Instance._gridWidth - 1]] != null)
         {
-            Color playerColor2 = Instance.PlayerPerTile[Instance.TileMatrix[0, Instance._gridWidth - 1]].GetComponent<Image>().color;
+            Sprite playerSymbol2 = Instance.PlayerPerTile[Instance.TileMatrix[0, Instance._gridWidth - 1]].GetComponent<Image>().sprite;
                         
             playerTilesInDgl2 = 1;
             
@@ -149,7 +151,7 @@ public class Grid
             {
 
                 if(Instance.PlayerPerTile[Instance.TileMatrix[row, Instance._gridWidth - row - 1]] == null) break;
-                if(playerColor2 != Instance.PlayerPerTile[Instance.TileMatrix[row, Instance._gridWidth - row - 1]].GetComponent<Image>().color) break;
+                if(playerSymbol2 != Instance.PlayerPerTile[Instance.TileMatrix[row, Instance._gridWidth - row - 1]].GetComponent<Image>().sprite) break;
                 playerTilesInDgl2++;
             }
         }

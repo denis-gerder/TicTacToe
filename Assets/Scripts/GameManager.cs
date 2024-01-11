@@ -16,6 +16,9 @@ public class GameManager : MonoBehaviour
     
     [SerializeField] [Range(2, 5)] private int playerCount = 2;
     public int PlayerCount => playerCount;
+    
+    [SerializeField] private bool isAIEnabled;
+    public bool IsAIEnabled => isAIEnabled;
 
     [HideInInspector] public int currentPlayer = 1;
 
@@ -29,12 +32,9 @@ public class GameManager : MonoBehaviour
         Grid.OnGameOver += HandleGameOver;
     }
     
-    private void HandleGameOver(bool isGameWon)
+    private void HandleGameOver(bool isGameWon, int player)
     {
-        if(isGameWon) Debug.Log($"Player {currentPlayer} won the game!");
+        if(isGameWon) Debug.Log($"Player {player} won the game!");
         else Debug.Log("Draw!");
     }
-    
-    
-    
 }
