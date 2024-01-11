@@ -13,13 +13,8 @@ MonoBehaviour:
   m_Name: PlayerConfig
   m_EditorClassIdentifier: 
   PlayerSymbols:
-  - Sprite: {fileID: -2135585597343286014, guid: 5aa8b770bc43046bc8d993d0d5b7f4a5, type: 3}
-    Color: {r: 0.5686275, g: 0.9270375, b: 1, a: 1}
-  - Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-    Color: {r: 1, g: 0.63789386, b: 0.5235849, a: 1}
-  - Sprite: {fileID: 7482667652216324306, guid: 75f5f34dc1b5347e0b8351032682f224, type: 3}
-    Color: {r: 0.65861183, g: 1, b: 0.5254902, a: 1}
-  - Sprite: {fileID: 3625043607559282579, guid: 19fb86013d8c24d6cb8410c0aadf30fa, type: 3}
-    Color: {r: 0.9334594, g: 0.5801887, b: 1, a: 1}
-  - Sprite: {fileID: -9095717837082945937, guid: bd3cb4af8406d4436a2ae8c2aafe1f8d, type: 3}
-    Color: {r: 1, g: 0.9819095, b: 0.5254902, a: 1}
+  - {fileID: 21300000, guid: a637728b21c839a4bb3aab2c12dff666, type: 3}
+  - {fileID: 21300000, guid: a673ba6dfe0fd0342b110d5d25f01ada, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
