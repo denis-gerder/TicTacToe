@@ -304,6 +304,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 8990641519522348509, guid: c951c86446b83b049ab42fe4f37e4b97, type: 3}
   playerConfigSO: {fileID: 11400000, guid: b7ef5cb710a92594588a196fbbdb5579, type: 2}
+  aiDifficulty: 1
 --- !u!1 &1220297392
 GameObject:
   m_ObjectHideFlags: 0
