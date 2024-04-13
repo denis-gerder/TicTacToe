@@ -1,11 +1,19 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class EnemyAI : TileHandler
 {
     [SerializeField] private AIDifficulty aiDifficulty;
+
+    private Dictionary<String, int> _scores;
+
+    private int _currentPlayerToSimulate;
+    
+    private int _roundToSimulate;
     
     protected void Awake()
     {
@@ -24,7 +32,7 @@ public class EnemyAI : TileHandler
             case AIDifficulty.Dumb:
                 DumbAI();
                 break;
-            case AIDifficulty.Smart: 
+            case AIDifficulty.MiniMax:
                 SmartAI();
                 break;
         }
@@ -33,6 +41,124 @@ public class EnemyAI : TileHandler
         int nextPlayer = GameManager.Instance.currentPlayer != GameManager.Instance.PlayerCount ? GameManager.Instance.currentPlayer + 1 : 1;
         GameManager.Instance.currentPlayer = nextPlayer;
         PlayerPlaced();
+    }
+
+    private void SmartAI()
+    {
+        int bestScore = int.MinValue;
+        Dictionary<String, int> bestMove = new();
+        _currentPlayerToSimulate = GameManager.Instance.currentPlayer;
+        
+        //get all empty tiles
+        for(int row = 0; row < Grid.Instance.GridWidth; row++)
+        {
+            for(int col = 0; col < Grid.Instance.GridWidth; col++)
+            {
+                //skip if tile is not empty
+                if (Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] != null) continue;
+                
+                //place tile and get score for that new board state
+                GameObject AITile = Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] = Instantiate(playerPrefab, Grid.Instance.TileMatrix[row, col].transform.GetChild(0));
+                AITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[_currentPlayerToSimulate - 1];
+                
+                _currentPlayerToSimulate = GameManager.Instance.currentPlayer != GameManager.Instance.PlayerCount? GameManager.Instance.currentPlayer + 1 : 1;
+                _roundToSimulate = GameManager.Instance.round;
+                _roundToSimulate++;
+                int score = MiniMax(Grid.Instance, 0, false);
+                
+                //destroy tile and remove reference from grid to reverse changes
+                Destroy(Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]]);
+                Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] = null;
+                
+                //update best score and best move
+                if(score > bestScore) {
+                    bestScore = score;
+                    bestMove["row"] = row;
+                    bestMove["col"] = col;
+                }
+            }
+        }
+        GameObject bestMoveTile = Grid.Instance.TileMatrix[bestMove["row"], bestMove["col"]];
+        GameObject enemyAITile = Instantiate(playerPrefab, bestMoveTile.transform.GetChild(0));
+        enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
+        Grid.Instance.PlayerPerTile[bestMoveTile] = enemyAITile;
+    }
+
+    private int MiniMax(Grid board, int depth, bool isMaximizing)
+    {
+        
+        int winner = board.CheckForWin();
+        
+        if (winner == 0 && _roundToSimulate == board.GridWidth * board.GridWidth) return 0;
+        if (winner != 0)
+        {
+            int score = winner == (_currentPlayerToSimulate = _currentPlayerToSimulate == 1
+                ? GameManager.Instance.PlayerCount
+                : _currentPlayerToSimulate - 1)
+                ? 1
+                : -1;
+            Debug.Log(score);
+            return score;
+        }
+            
+        
+        if (isMaximizing)
+        {
+            int bestScore = int.MinValue;
+            for (int row = 0; row < board.GridWidth; row++)
+            {
+                for (int col = 0; col < board.GridWidth; col++)
+                {
+                    //skip if tile is not empty
+                    if (board.PlayerPerTile[board.TileMatrix[row, col]] != null) continue;
+                    
+                    //place tile and get score for that new board state
+                    
+                    GameObject AITile = board.PlayerPerTile[board.TileMatrix[row, col]] = Instantiate(playerPrefab, board.TileMatrix[row, col].transform.GetChild(0));
+                    AITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[_currentPlayerToSimulate - 1];
+                    
+                    _currentPlayerToSimulate = GameManager.Instance.currentPlayer != GameManager.Instance.PlayerCount? GameManager.Instance.currentPlayer + 1 : 1;
+                    _roundToSimulate = _roundToSimulate < board.GridWidth * board.GridWidth ? _roundToSimulate + 1 : GameManager.Instance.round + 1;
+                    int score = MiniMax(board, depth + 1, false);
+                    
+                    //destroy tile and remove reference from grid to reverse changes
+                    Destroy(AITile);
+                    board.PlayerPerTile[board.TileMatrix[row, col]] = null;
+                    
+                    //update best score
+                    bestScore = Math.Max(score, bestScore);
+                }
+            }
+            return bestScore;
+        }
+        else
+        {
+            int bestScore = int.MaxValue;
+            for (int row = 0; row < board.GridWidth; row++)
+            {
+                for (int col = 0; col < board.GridWidth; col++)
+                {
+                    //skip if tile is not empty
+                    if (board.PlayerPerTile[board.TileMatrix[row, col]] != null) continue;
+                    
+                    //place tile and get score for that new board state
+                    GameObject AITile = board.PlayerPerTile[board.TileMatrix[row, col]] = Instantiate(playerPrefab, board.TileMatrix[row, col].transform.GetChild(0));
+                    AITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[_currentPlayerToSimulate - 1];
+                    
+                    _currentPlayerToSimulate = GameManager.Instance.currentPlayer != GameManager.Instance.PlayerCount? GameManager.Instance.currentPlayer + 1 : 1;
+                    _roundToSimulate = _roundToSimulate < board.GridWidth * board.GridWidth ? _roundToSimulate + 1 : GameManager.Instance.round + 1;
+                    int score = MiniMax(board, depth + 1, true);
+                    
+                    //destroy tile and remove reference from grid to reverse changes
+                    Destroy(board.PlayerPerTile[board.TileMatrix[row, col]]);
+                    board.PlayerPerTile[board.TileMatrix[row, col]] = null;
+                    
+                    //update best score
+                    bestScore = Math.Min(score, bestScore);
+                }
+            }
+            return bestScore;
+        } 
     }
 
     private void DumbAI()
@@ -48,132 +174,15 @@ public class EnemyAI : TileHandler
         }
         //get random empty tile and place player tile with reference in grid
         GameObject emptyTile = emptyTiles[Random.Range(0, emptyTiles.Count)];
-        GameObject enemyAITile = Instantiate(playerPrefab, emptyTile.transform);
+        GameObject enemyAITile = Instantiate(playerPrefab, emptyTile.transform.GetChild(0));
         enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
         Grid.Instance.PlayerPerTile[emptyTile] = enemyAITile;
     }
 
-    private void SmartAI()
-    {
-        //place tile to prevent player win if possible
-        bool playerWinPrevented = PreventPlayerWin();
-        if(playerWinPrevented) return;
-        
-        //place tile to win if possible
-        PlaceSmartTile();
-    }
-
-    private bool PreventPlayerWin()
-    {
-        bool playerWinPrevented = false;
-
-        playerWinPrevented = CheckForCloseHorizontalPlayerWin() || CheckForCloseVericalPlayerWin() || CheckForCloseDiagonalWin();
-        
-        return playerWinPrevented;
-    }
-
-    private void PlaceSmartTile()
-    {
-        
-    }
-    
-    private bool CheckForCloseVericalPlayerWin()
-    {
-        Vector2Int emptyTilePosition = new Vector2Int(0, 0);
-        for (int row = 0; row < Grid.Instance.GridWidth; row++)
-        {
-            int playerTilesInCol = 0;
-            
-            for (int col = 0; col < Grid.Instance.GridWidth; col++)
-            {
-                if(Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] == null) emptyTilePosition = new Vector2Int(row, col);
-                
-                //check if tile is placed by player and not empty
-                else if(playerConfigSO.PlayerSymbols[0] == Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]].GetComponent<Image>().sprite) playerTilesInCol++;
-                
-                
-            }
-            if (playerTilesInCol == Grid.Instance.GridWidth - 1)
-            {
-                
-                GameObject enemyAITile = Instantiate(playerPrefab, Grid.Instance.TileMatrix[emptyTilePosition.x, emptyTilePosition.y].transform);
-                enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
-                Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[emptyTilePosition.x, emptyTilePosition.y]] = enemyAITile;
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    private bool CheckForCloseHorizontalPlayerWin()
-    {
-        Vector2Int emptyTilePosition = new Vector2Int(0, 0);
-        for (int row = 0; row < Grid.Instance.GridWidth; row++)
-        {
-            int playerTilesInRow = 0;
-            
-            for (int col = 0; col < Grid.Instance.GridWidth; col++)
-            {
-                if(Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[col, row]] == null) emptyTilePosition = new Vector2Int(col, row);
-                
-                //check if tile is placed by player and not empty
-                else if(playerConfigSO.PlayerSymbols[0] == Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[col, row]].GetComponent<Image>().sprite) playerTilesInRow++;
-                
-                
-            }
-            if (playerTilesInRow == Grid.Instance.GridWidth - 1)
-            {
-                GameObject enemyAITile = Instantiate(playerPrefab, Grid.Instance.TileMatrix[emptyTilePosition.x, emptyTilePosition.y].transform);
-                enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
-                Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[emptyTilePosition.x, emptyTilePosition.y]] = enemyAITile;
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    private bool CheckForCloseDiagonalWin()
-    {
-        Vector2Int emptyTilePosition1 = new Vector2Int(0, 0);
-        int playerTilesInDgl1 = 0;
-
-        for (int row = 0; row < Grid.Instance.GridWidth; row++)
-        {
-            if (Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, row]] == null) emptyTilePosition1 = new Vector2Int(row, row);
-            else if (playerConfigSO.PlayerSymbols[0] == Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, row]].GetComponent<Image>().sprite) playerTilesInDgl1++;
-        }
-        
-        if (playerTilesInDgl1 == Grid.Instance.GridWidth - 1)
-        {
-            GameObject enemyAITile = Instantiate(playerPrefab, Grid.Instance.TileMatrix[emptyTilePosition1.x, emptyTilePosition1.y].transform);
-            enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
-            Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[emptyTilePosition1.x, emptyTilePosition1.y]] = enemyAITile;
-            return true;
-        }
-        
-        Vector2Int emptyTilePosition2 = new Vector2Int(0, 0);
-        int playerTilesInDgl2 = 0;
-        for (int row = 0; row < Grid.Instance.GridWidth; row++)
-        {
-            if (Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, Grid.Instance.GridWidth - row - 1]] == null) emptyTilePosition2 = new Vector2Int(row, Grid.Instance.GridWidth - row - 1);
-            else if (playerConfigSO.PlayerSymbols[0] == Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, Grid.Instance.GridWidth - row - 1]].GetComponent<Image>().sprite) playerTilesInDgl2++;
-        }
-        
-        if (playerTilesInDgl2 == Grid.Instance.GridWidth - 1)
-        {
-            GameObject enemyAITile = Instantiate(playerPrefab, Grid.Instance.TileMatrix[emptyTilePosition2.x, emptyTilePosition2.y].transform);
-            enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
-            Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[emptyTilePosition2.x, emptyTilePosition2.y]] = enemyAITile;
-            return true;
-        }
-        
-        return false;
-    }
-     
 }
 
 public enum AIDifficulty
 {
     Dumb,
-    Smart
+    MiniMax
 }

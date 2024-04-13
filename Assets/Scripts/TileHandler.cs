@@ -10,7 +10,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
 {
     [SerializeField] protected GameObject playerPrefab;
     
-    [SerializeField] protected PlayerConfigSO playerConfigSO;
+    [SerializeField] public PlayerConfigSO playerConfigSO;
     
     private Image _image;
     

@@ -70,27 +70,34 @@ public class Grid
     private void HandlePlayerTilePlaced(int player)
     {
         //check if game is won or if it's a draw
-        bool isGameWon = CheckForWin();
-        if(isGameWon) OnGameOver?.Invoke(true, player);
+        int winner = CheckForWin();
+        if(winner != 0) OnGameOver?.Invoke(true, winner);
         
         GameManager.Instance.round++;
-        if(GameManager.Instance.round == _gridWidth * _gridWidth && !isGameWon) OnGameOver?.Invoke(false, player);
+        if(GameManager.Instance.round == _gridWidth * _gridWidth && winner == 0) OnGameOver?.Invoke(false, player);
         
         //end turn
         OnTurnEnd?.Invoke();
     }
     
-    public bool CheckForWin()
+    public int CheckForWin()
     {
-        return CheckForHorizontalWin() || CheckForVerticalWin() || CheckForDiagonalWin();
+        int horizontalWin = CheckForHorizontalWin();
+        int verticalWin = CheckForVerticalWin();
+        int diagonalWin = CheckForDiagonalWin();
+        if(horizontalWin != 0) return horizontalWin;
+        if(verticalWin != 0) return verticalWin;
+        if(diagonalWin != 0) return diagonalWin;
+        return 0;
     }
     
-    private bool CheckForHorizontalWin()
+    private int CheckForHorizontalWin()
     {
         for (int row = 0; row < Instance._gridWidth; row++)
         {
             if(Instance.PlayerPerTile[Instance.TileMatrix[row, 0]] == null) continue;
             Sprite playerSymbol = Instance.PlayerPerTile[Instance.TileMatrix[row, 0]].GetComponent<Image>().sprite;
+            
             
             int playerTilesInRow = 1;
             for (int col = 1; col < Instance._gridWidth; col++)
@@ -99,12 +106,16 @@ public class Grid
                 if(playerSymbol != Instance.PlayerPerTile[Instance.TileMatrix[row, col]].GetComponent<Image>().sprite) break;
                 playerTilesInRow++;
             }
-            if(playerTilesInRow == Instance._gridWidth) return true;
+            if (playerTilesInRow == Instance._gridWidth)
+            {
+                int player = Instance.PlayerPerTile[Instance.TileMatrix[row, 0]].transform.parent.GetComponent<TileHandler>().playerConfigSO.PlayerSymbols.IndexOf(playerSymbol)+1;
+                return player;
+            }
         }
-        return false;
+        return 0;
     }
     
-    private bool CheckForVerticalWin()
+    private int CheckForVerticalWin()
     {
         for (int col = 0; col < Instance._gridWidth; col++)
         {
@@ -118,14 +129,20 @@ public class Grid
                 if(playerSymbol != Instance.PlayerPerTile[Instance.TileMatrix[row, col]].GetComponent<Image>().sprite) break;
                 playerTilesInCol++;
             }
-            if(playerTilesInCol == Instance._gridWidth) return true;
+
+            if (playerTilesInCol == Instance._gridWidth)
+            {
+                int player = Instance.PlayerPerTile[Instance.TileMatrix[0, col]].transform.parent.GetComponent<TileHandler>().playerConfigSO.PlayerSymbols.IndexOf(playerSymbol)+1;
+                return player;
+            }
         }
-        return false;
+        return 0;
     }
     
-    private bool CheckForDiagonalWin()
+    private int CheckForDiagonalWin()
     {
         int playerTilesInDgl1 = 0;
+        int player = 0;
         if (Instance.PlayerPerTile[Instance.TileMatrix[0, 0]] != null)
         {
             Sprite playerSymbol1 = Instance.PlayerPerTile[Instance.TileMatrix[0, 0]].GetComponent<Image>().sprite;
@@ -138,6 +155,9 @@ public class Grid
                 if (playerSymbol1 != Instance.PlayerPerTile[Instance.TileMatrix[row, row]].GetComponent<Image>().sprite) break;
                 playerTilesInDgl1++;
             }
+            
+            if(playerTilesInDgl1 == Instance._gridWidth)
+                player = Instance.PlayerPerTile[Instance.TileMatrix[0, 0]].transform.parent.GetComponent<TileHandler>().playerConfigSO.PlayerSymbols.IndexOf(playerSymbol1)+1;
         }
         
         int playerTilesInDgl2 = 0;
@@ -154,9 +174,12 @@ public class Grid
                 if(playerSymbol2 != Instance.PlayerPerTile[Instance.TileMatrix[row, Instance._gridWidth - row - 1]].GetComponent<Image>().sprite) break;
                 playerTilesInDgl2++;
             }
+            
+            if(playerTilesInDgl2 == Instance._gridWidth)
+                player = Instance.PlayerPerTile[Instance.TileMatrix[0, Instance._gridWidth - 1]].transform.parent.GetComponent<TileHandler>().playerConfigSO.PlayerSymbols.IndexOf(playerSymbol2)+1;
         }
-        if(playerTilesInDgl1 == Instance._gridWidth || playerTilesInDgl2 == Instance._gridWidth) return true;
+        if(playerTilesInDgl1 == Instance._gridWidth || playerTilesInDgl2 == Instance._gridWidth) return player;
         
-        return false;
+        return player;
     }
 }
