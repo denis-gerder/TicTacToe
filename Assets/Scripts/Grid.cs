@@ -50,7 +50,7 @@ public class Grid
                 
                 RectTransform rectTransform = tileInstance.GetComponent<RectTransform>();
                 rectTransform.localScale *= tileScale;
-                rectTransform.anchoredPosition = new Vector3(tileScale * row * tileWidth, tileScale * col * tileWidth, 0);
+                rectTransform.anchoredPosition = new Vector3(tileScale * col * tileWidth, tileScale * row * tileWidth, 0);
             }
         }
         
