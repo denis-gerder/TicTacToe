@@ -273,6 +273,7 @@ MonoBehaviour:
   width: 3
   playerCount: 2
   isAIEnabled: 1
+  enableLogging: 0
   currentPlayer: 1
   round: 0
 --- !u!4 &1200753424

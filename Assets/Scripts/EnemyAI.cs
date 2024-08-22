@@ -46,10 +46,11 @@ public class EnemyAI : TileHandler
     private void SmartAI()
     {
         int bestScore = int.MinValue;
+        //store best move to place next tile as row and col
         Dictionary<String, int> bestMove = new();
+        //create simple copy of the board state as integers to reduce complexity of placing and removing tiles as game objects
         BoardState boardStateCopy = new(Grid.Instance.TileMatrix, Grid.Instance.PlayerPerTile);
         
-        //get all empty tiles
         for(int row = 0; row < Grid.Instance.GridWidth; row++)
         {
             for(int col = 0; col < Grid.Instance.GridWidth; col++)
@@ -57,15 +58,20 @@ public class EnemyAI : TileHandler
                 //skip if tile is not empty
                 if (Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] != null) continue;
                 
+                //set current player and round for copied board state to simulate next move
                 boardStateCopy.CurrentPlayer = GameManager.Instance.currentPlayer;
                 boardStateCopy.CurrentRound = GameManager.Instance.round+1;
                 
-                //place tile and get score for that new board state
+                //place tile at current test position in copied board
                 boardStateCopy.Board[row, col] = boardStateCopy.CurrentPlayer;
+
+                if(GameManager.Instance.EnableLogging)
+                    boardStateCopy.AddStateToDebugString();
+
+                //get score for that new board state
+                int score = MiniMax(boardStateCopy, 0, false, boardStateCopy.CurrentPlayer, boardStateCopy.CurrentRound, int.MinValue, int.MaxValue);
                 
-                int score = MiniMax(boardStateCopy, 0, false, boardStateCopy.CurrentPlayer, boardStateCopy.CurrentRound);
-                
-                //destroy tile and remove reference from grid to reverse changes
+                //remove reference from copied board to reverse changes
                 boardStateCopy.Board[row, col] = 0;
                 
                 //update best score and best move
@@ -73,6 +79,12 @@ public class EnemyAI : TileHandler
                     bestScore = score;
                     bestMove["row"] = row;
                     bestMove["col"] = col;
+                }
+                if (GameManager.Instance.EnableLogging)
+                {
+                    boardStateCopy.placeSequenceString += " Best Score: " + bestScore + "\n";
+                    Debug.Log(boardStateCopy.placeSequenceString);
+                    boardStateCopy.placeSequenceString = "";
                 }
             }
         }
@@ -82,14 +94,22 @@ public class EnemyAI : TileHandler
         Grid.Instance.PlayerPerTile[bestMoveTile] = enemyAITile;
     }
 
-    private int MiniMax(BoardState board, int depth, bool isMaximizing, int currentPlayer, int currentRound)
+    private int MiniMax(BoardState board, int depth, bool isMaximizing, int currentPlayer, int currentRound, int alpha, int beta)
     {
         int winner = board.CheckForWin();
-        
-        if (winner == 0 && board.CurrentRound == board.Board.GetLength(0) * board.Board.GetLength(1)) return 0;
+
+        if (winner == 0 && board.CurrentRound == board.Board.GetLength(0) * board.Board.GetLength(1))
+        {
+            if (GameManager.Instance.EnableLogging)
+                board.AddStateToDebugString(0);
+            return 0;
+        }
         if (winner != 0)
         {
-            return winner == GameManager.Instance.currentPlayer ? 1 : -1;
+            int score = winner == GameManager.Instance.currentPlayer ? 1 : -1;
+            if (GameManager.Instance.EnableLogging)
+                board.AddStateToDebugString(score);
+            return score;
         }
         
         if (isMaximizing)
@@ -106,14 +126,22 @@ public class EnemyAI : TileHandler
                     board.CurrentRound = currentRound + 1;
                     //place tile and get score for that new board state
                     board.Board[row, col] = board.CurrentPlayer;
-                    
-                    int score = MiniMax(board, depth + 1, false, board.CurrentPlayer, board.CurrentRound);
+
+                    if (GameManager.Instance.EnableLogging)
+                        board.AddStateToDebugString();
+
+                    int score = MiniMax(board, depth + 1, false, board.CurrentPlayer, board.CurrentRound, int.MinValue, int.MaxValue);
                     
                     //destroy tile and remove reference from grid to reverse changes
                     board.Board[row, col] = 0;
                     
                     //update best score
                     bestScore = Math.Max(score, bestScore);
+                    alpha = Math.Max(alpha, bestScore);
+                    if (beta <= alpha)
+                    {
+                        break;
+                    }
                 }
             }
             return bestScore;
@@ -132,14 +160,22 @@ public class EnemyAI : TileHandler
                     board.CurrentRound = currentRound + 1;
                     //place tile and get score for that new board state
                     board.Board[row, col] = board.CurrentPlayer;
-                    
-                    int score = MiniMax(board, depth + 1, true, board.CurrentPlayer, board.CurrentRound);
+
+                    if (GameManager.Instance.EnableLogging)
+                        board.AddStateToDebugString();
+
+                    int score = MiniMax(board, depth + 1, true, board.CurrentPlayer, board.CurrentRound, int.MinValue, int.MaxValue);
                     
                     //destroy tile and remove reference from grid to reverse changes
                     board.Board[row, col] = 0;
                     
                     //update best score
                     bestScore = Math.Min(score, bestScore);
+                    beta = Math.Min(beta, bestScore);
+                    if (beta <= alpha)
+                    {
+                        break;
+                    }
                 }
             }
             return bestScore;
@@ -173,6 +209,8 @@ public class BoardState
     public int CurrentRound;
     
     public int CurrentPlayer;
+
+    public String placeSequenceString;
     
     public BoardState(GameObject[,] tileMatrix, Dictionary<GameObject, GameObject> playerPerTile)
     {
@@ -275,6 +313,28 @@ public class BoardState
             }
         }
         return 0;
+    }
+
+    public void AddStateToDebugString(int score)
+    {
+
+        placeSequenceString += " Score:" + score + "\n------\n";
+    }
+
+    public void AddStateToDebugString()
+    {
+        String boardString = "";
+        for (int row = 0; row < Board.GetLength(0); row++)
+        {
+            String rowString = "";
+            for (int col = 0; col < Board.GetLength(1); col++)
+            {
+                rowString += " " +  Board[row, col] + " ";
+            }
+            boardString = rowString + "\n" + boardString;
+        }
+
+        placeSequenceString += boardString + "------\n";
     }
 }
 

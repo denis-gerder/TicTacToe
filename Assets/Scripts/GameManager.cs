@@ -20,6 +20,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool isAIEnabled;
     public bool IsAIEnabled => isAIEnabled;
 
+    [SerializeField] private bool enableLogging;
+    public bool EnableLogging => enableLogging;
+
     [HideInInspector] public int currentPlayer = 1;
 
     [HideInInspector] public int round = 0;
