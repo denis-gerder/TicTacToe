@@ -272,7 +272,7 @@ MonoBehaviour:
   tilePrefab: {fileID: 2603811997576117345, guid: 50c9f920969d12949898118b56a35dd5, type: 3}
   width: 3
   playerCount: 2
-  isAIEnabled: 0
+  isAIEnabled: 1
   enableLogging: 0
   currentPlayer: 1
   round: 0
@@ -305,7 +305,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 8990641519522348509, guid: c951c86446b83b049ab42fe4f37e4b97, type: 3}
   playerConfigSO: {fileID: 11400000, guid: b7ef5cb710a92594588a196fbbdb5579, type: 2}
-  aiDifficulty: 1
+  aiDifficulty: 2
 --- !u!1 &1220297392
 GameObject:
   m_ObjectHideFlags: 0

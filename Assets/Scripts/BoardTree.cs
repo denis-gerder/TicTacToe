@@ -13,13 +13,10 @@ namespace Assets.Scripts
         public int[,] data;
         private BoardTree parent;
         private LinkedList<BoardTree> children;
-        private String StringRepresentation;
-        public int score = 1000;
-        public int alpha = 1000;
-        public int beta = 1000;
+        private string StringRepresentation;
+        public int score = 111;
 
         private static int idTracker = 0;
-
         private int id;
 
 
@@ -43,7 +40,7 @@ namespace Assets.Scripts
 
         public BoardTree AddChild(int[,] data)
         {
-            BoardTree child = new BoardTree(data);
+            BoardTree child = new(data);
             children.AddLast(child);
             child.SetParent(this);
 
@@ -69,27 +66,27 @@ namespace Assets.Scripts
             return parent;
         }
 
-        public String PrintTree()
+        public string PrintTree()
         {
             StringRepresentation = "";
-            Dictionary<int, List<BoardTree>> nodesPerDepth = new Dictionary<int, List<BoardTree>>();
+            Dictionary<int, List<BoardTree>> nodesPerDepth = new();
             PutNodesForDepths(this, nodesPerDepth, 0);
             for (int depth = nodesPerDepth.Count - 1; depth >= 1; depth--)
             {
                 nodesPerDepth.TryGetValue(depth, out List<BoardTree> list);
-                String LastRows = StringRepresentation;
+                string LastRows = StringRepresentation;
                 StringRepresentation = PrintTreeAtDepth(list) + "\n" + LastRows;
             }
             return StringRepresentation;
         }
 
-        public String PrintTreeAtDepth(List<BoardTree> nodesAtDepth)
+        public string PrintTreeAtDepth(List<BoardTree> nodesAtDepth)
         {
             StringRepresentation = "";
-            for (int i = nodesAtDepth[0].data.GetLength(0); i >= -3; i--)
+            for (int i = nodesAtDepth[0].data.GetLength(0); i >= -1; i--)
             {
 
-                BoardTree parent = new BoardTree();
+                BoardTree parent = new();
                 foreach (BoardTree child in nodesAtDepth)
                 {
                     if (parent != child.GetParent())
@@ -100,7 +97,7 @@ namespace Assets.Scripts
 
                     if (i == nodesAtDepth[0].data.GetLength(0))
                     {
-                        String idString = child.id + ":" + parent.id;
+                        string idString = child.id + ":" + parent.id;
                         int stringLengthPerBoard = nodesAtDepth[0].data.GetLength(0) * 2 + 5;
 
                         StringRepresentation += idString;
@@ -112,36 +109,12 @@ namespace Assets.Scripts
                     }
                     else if (i == -1)
                     {
-                        String scoreString = "Sc: " + child.score;
+                        string scoreString = "Sc: " + child.score;
                         int stringLengthPerBoard = nodesAtDepth[0].data.GetLength(0) * 2 + 5;
                         if (child.children.Count == 0)
                         {
                             scoreString += "T";
                         }
-
-                        StringRepresentation += scoreString;
-
-                        for (int j = 0; j < stringLengthPerBoard - (int)(scoreString.Length * 1.17); j++)
-                        {
-                            StringRepresentation += " ";
-                        }
-                    }
-                    else if (i == -2)
-                    {
-                        String scoreString = "a: " + child.alpha;
-                        int stringLengthPerBoard = nodesAtDepth[0].data.GetLength(0) * 2 + 5;
-
-                        StringRepresentation += scoreString;
-
-                        for (int j = 0; j < stringLengthPerBoard - (int)(scoreString.Length * 1.17); j++)
-                        {
-                            StringRepresentation += " ";
-                        }
-                    }
-                    else if (i == -3)
-                    {
-                        String scoreString = "b: " + child.beta;
-                        int stringLengthPerBoard = nodesAtDepth[0].data.GetLength(0) * 2 + 5;
 
                         StringRepresentation += scoreString;
 
