@@ -10,38 +10,38 @@ namespace Assets.Scripts
     public class BoardTree
     {
 
-        public int[,] data;
-        private BoardTree parent;
-        private LinkedList<BoardTree> children;
-        private string StringRepresentation;
-        public int score = 111;
+        public int[,] Data;
+        private BoardTree _parent;
+        private readonly LinkedList<BoardTree> _children;
+        private string _stringRepresentation;
+        public float Score = 111;
 
-        private static int idTracker = 0;
-        private int id;
+        private static int _idTracker = 0;
+        private readonly int _id;
 
 
         public BoardTree()
         {
-            this.data = null;
-            this.parent = null;
-            children = new LinkedList<BoardTree>();
-            id = idTracker;
-            idTracker++;
+            this.Data = null;
+            this._parent = null;
+            _children = new LinkedList<BoardTree>();
+            _id = _idTracker;
+            _idTracker++;
         }
 
         public BoardTree(int[,] data)
         {
-            this.data = data;
-            this.parent = null;
-            children = new LinkedList<BoardTree>();
-            id = idTracker;
-            idTracker++;
+            this.Data = data;
+            this._parent = null;
+            _children = new LinkedList<BoardTree>();
+            _id = _idTracker;
+            _idTracker++;
         }
 
         public BoardTree AddChild(int[,] data)
         {
             BoardTree child = new(data);
-            children.AddLast(child);
+            _children.AddLast(child);
             child.SetParent(this);
 
             return child;
@@ -49,7 +49,7 @@ namespace Assets.Scripts
 
         public BoardTree GetChild(int i)
         {
-            foreach (BoardTree childTree in children)
+            foreach (BoardTree childTree in _children)
                 if (--i == 0)
                     return childTree;
             return null;
@@ -57,33 +57,33 @@ namespace Assets.Scripts
 
         public BoardTree SetParent(BoardTree parent)
         {
-            this.parent = parent;
+            this._parent = parent;
             return this;
         }
 
         public BoardTree GetParent()
         {
-            return parent;
+            return _parent;
         }
 
         public string PrintTree()
         {
-            StringRepresentation = "";
+            _stringRepresentation = "";
             Dictionary<int, List<BoardTree>> nodesPerDepth = new();
             PutNodesForDepths(this, nodesPerDepth, 0);
             for (int depth = nodesPerDepth.Count - 1; depth >= 1; depth--)
             {
                 nodesPerDepth.TryGetValue(depth, out List<BoardTree> list);
-                string LastRows = StringRepresentation;
-                StringRepresentation = PrintTreeAtDepth(list) + "\n" + LastRows;
+                string LastRows = _stringRepresentation;
+                _stringRepresentation = PrintTreeAtDepth(list) + "\n" + LastRows;
             }
-            return StringRepresentation;
+            return _stringRepresentation;
         }
 
         public string PrintTreeAtDepth(List<BoardTree> nodesAtDepth)
         {
-            StringRepresentation = "";
-            for (int i = nodesAtDepth[0].data.GetLength(0); i >= -1; i--)
+            _stringRepresentation = "";
+            for (int i = nodesAtDepth[0].Data.GetLength(0); i >= -1; i--)
             {
 
                 BoardTree parent = new();
@@ -91,52 +91,52 @@ namespace Assets.Scripts
                 {
                     if (parent != child.GetParent())
                     {
-                        StringRepresentation += "|      ";
+                        _stringRepresentation += "|      ";
                     }
                     parent = child.GetParent();
 
-                    if (i == nodesAtDepth[0].data.GetLength(0))
+                    if (i == nodesAtDepth[0].Data.GetLength(0))
                     {
-                        string idString = child.id + ":" + parent.id;
-                        int stringLengthPerBoard = nodesAtDepth[0].data.GetLength(0) * 2 + 5;
+                        string idString = child._id + ":" + parent._id;
+                        int stringLengthPerBoard = nodesAtDepth[0].Data.GetLength(0) * 2 + 5;
 
-                        StringRepresentation += idString;
+                        _stringRepresentation += idString;
 
                         for (int j = 0; j < stringLengthPerBoard - (int)(idString.Length * 1.2); j++)
                         {
-                            StringRepresentation += " ";
+                            _stringRepresentation += " ";
                         }
                     }
                     else if (i == -1)
                     {
-                        string scoreString = "Sc: " + child.score;
-                        int stringLengthPerBoard = nodesAtDepth[0].data.GetLength(0) * 2 + 5;
-                        if (child.children.Count == 0)
+                        string scoreString = "Sc: " + child.Score;
+                        int stringLengthPerBoard = nodesAtDepth[0].Data.GetLength(0) * 2 + 5;
+                        if (child._children.Count == 0)
                         {
                             scoreString += "T";
                         }
 
-                        StringRepresentation += scoreString;
+                        _stringRepresentation += scoreString;
 
                         for (int j = 0; j < stringLengthPerBoard - (int)(scoreString.Length * 1.17); j++)
                         {
-                            StringRepresentation += " ";
+                            _stringRepresentation += " ";
                         }
                     }
                     else
                     {
-                        for (int j = 0; j < child.data.GetLength(1); j++)
+                        for (int j = 0; j < child.Data.GetLength(1); j++)
                         {
-                            StringRepresentation += child.data[i, j] + " ";
+                            _stringRepresentation += child.Data[i, j] + " ";
                         }
-                        StringRepresentation += "     ";
+                        _stringRepresentation += "     ";
                     }
 
                 }
-                StringRepresentation += "\n";
+                _stringRepresentation += "\n";
             }
 
-            return StringRepresentation;
+            return _stringRepresentation;
         }
 
         private void PutNodesForDepths(BoardTree node, Dictionary<int, List<BoardTree>> nodesPerDepth, int depth)
@@ -146,7 +146,7 @@ namespace Assets.Scripts
                 nodesPerDepth.Add(depth, new List<BoardTree>());
             }
             nodesPerDepth[depth].Add(node);
-            foreach (BoardTree child in node.children)
+            foreach (BoardTree child in node._children)
             {
                 PutNodesForDepths(child, nodesPerDepth, depth + 1);
             }

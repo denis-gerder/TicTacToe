@@ -16,35 +16,53 @@ using Random = UnityEngine.Random;
 using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 using System.Reflection;
 using System.Threading.Tasks;
+using Unity.VisualScripting.Dependencies.NCalc;
+using UnityEngine.Tilemaps;
 
-public class EnemyAI : TileHandler
+public enum AIDifficulty
 {
-    [SerializeField] private AIDifficulty aiDifficulty;
-    private AIDifficulty currentDifficulty;
-        
+    Random,
+    Dumb,
+    Optimal,
+    OptimalWithRandomness
+}
+
+
+public class EnemyAI : MonoBehaviour
+{
+    private AIDifficulty _currentDifficulty;
+    private int _maxDepth;
+    private long _durationOfAlgorithm;
+    private int _configuredMaxDepth = 7;
+    private Grid _playingField;
 
     protected void Awake()
     {
-        Grid.OnTurnEnd += HandleTurnEnd;
-        Grid.OnGameOver += HandleGameOver;
-        currentDifficulty = aiDifficulty;
+        _currentDifficulty = GameManager.Instance.AiDifficulty;
+    }
+
+    public void SetupPlayingFieldReference(Grid playingField)
+    {
+        _playingField = playingField;
+        _playingField.OnTurnEnd += HandleTurnEnd;
     }
 
     private void HandleTurnEnd()
     {
         //return if AI is disabled or if it's not the AI's turn
-        if (!GameManager.Instance.IsAIEnabled || GameManager.Instance.currentPlayer == 1 || _gameOver) return;
+        if (!GameManager.Instance.IsAiEnabled || _playingField.CurrentPlayer == 1 || GameManager.Instance.GameOver) 
+            return;
 
-        if (currentDifficulty == AIDifficulty.Random)
+        if (_currentDifficulty == AIDifficulty.Random)
         {
-            List<AIDifficulty> allDifficulties = new List<AIDifficulty>();
+            List<AIDifficulty> allDifficulties = new();
             allDifficulties.AddRange(Enum.GetValues(typeof(AIDifficulty)).OfType<AIDifficulty>());
             allDifficulties.Remove(AIDifficulty.Random);
-            currentDifficulty = allDifficulties[Random.Range(0, allDifficulties.Count)];
+            _currentDifficulty = allDifficulties[Random.Range(0, allDifficulties.Count)];
         }
 
         //ai places tile
-        switch (currentDifficulty)
+        switch (_currentDifficulty)
         {
             case AIDifficulty.Dumb:
                 DumbAI();
@@ -57,44 +75,40 @@ public class EnemyAI : TileHandler
                 break;
         }
 
-        //turn ends and next player is set
-        int nextPlayer = GameManager.Instance.currentPlayer != GameManager.Instance.PlayerCount
-            ? GameManager.Instance.currentPlayer + 1
-            : 1;
-        GameManager.Instance.currentPlayer = nextPlayer;
-        PlayerPlaced();
+        //turn ends
+        TileHandler.InvokeOnPlayerTilePlaced();
     }
 
-    struct TileScore
+    readonly struct TileScore
     {
-        public int row;
-        public int col;
-        public int score;
-        public BoardState board;
+        public readonly int Row;
+        public readonly int Col;
+        public readonly float Score;
+        public readonly BoardState Board;
 
-        public TileScore(int row, int col, int score, BoardState board
+        public TileScore(int row, int col, float score, BoardState board
         )
         {
-            this.row = row;
-            this.col = col;
-            this.score = score;
-            this.board = board;
+            this.Row = row;
+            this.Col = col;
+            this.Score = score;
+            this.Board = board;
         }
     }
 
-    struct AsyncProps
+    readonly struct AsyncProps
     {
-        public int row;
-        public int col;
-        public BoardState boardStateCopy;
-        public List<TileScore> tileScores;
+        public readonly int Row;
+        public readonly int Col;
+        public readonly BoardState BoardStateCopy;
+        public readonly List<TileScore> TileScores;
 
         public AsyncProps(int row, int col, BoardState boardStateCopy, List<TileScore> tileScores)
         {
-            this.row = row;
-            this.col = col;
-            this.boardStateCopy = boardStateCopy;
-            this.tileScores = tileScores;
+            this.Row = row;
+            this.Col = col;
+            this.BoardStateCopy = boardStateCopy;
+            this.TileScores = tileScores;
         }
     }
 
@@ -103,18 +117,18 @@ public class EnemyAI : TileHandler
         //store best move to place next tile as row and col
         Dictionary<string, int> bestMove = new();
         //create simple copy of the board state as integers to reduce complexity of placing and removing tiles as game objects
-        BoardState originalBoardState = new(Grid.Instance.TileMatrix, Grid.Instance.PlayerPerTile);
+        BoardState originalBoardState = new(_playingField.TileMatrix, _playingField.PlayerPerTile);
 
         List<TileScore> tileScores = new();
 
         List<Tuple<int, int, int>> possibleMoves = new();
 
-        for (int row = 0; row < Grid.Instance.GridWidth; row++)
+        for (int row = 0; row < _playingField.GridWidth; row++)
         {
-            for(int col = 0; col < Grid.Instance.GridWidth; col++)
+            for (int col = 0; col < _playingField.GridWidth; col++)
             {
                 //skip if tile is not empty
-                if (Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] != null) 
+                if (_playingField.PlayerPerTile[_playingField.TileMatrix[row, col]] != null)
                     continue;
 
                 possibleMoves.Add(new Tuple<int, int, int>(row, col, 0));
@@ -128,33 +142,34 @@ public class EnemyAI : TileHandler
             int row = move.Item1;
             int col = move.Item2;
 
-            ThreadPool.QueueUserWorkItem((asyncProps =>
+            ThreadPool.QueueUserWorkItem((worker =>
             {
+                AsyncProps asyncProps = (AsyncProps)worker;
                 //set current player and round for copied board state to simulate next move
-                ((AsyncProps)asyncProps).boardStateCopy.CurrentPlayer = GameManager.Instance.currentPlayer;
-                ((AsyncProps)asyncProps).boardStateCopy.CurrentRound = GameManager.Instance.round + 1;
+                asyncProps.BoardStateCopy.CurrentPlayer = _playingField.CurrentPlayer;
+                asyncProps.BoardStateCopy.CurrentRound = _playingField.Round + 1;
 
                 //place tile at current test position in copied board
-                ((AsyncProps)asyncProps).boardStateCopy.Board[((AsyncProps)asyncProps).row, ((AsyncProps)asyncProps).col] = ((AsyncProps)asyncProps).boardStateCopy.CurrentPlayer;
+                asyncProps.BoardStateCopy.Board[asyncProps.Row, asyncProps.Col] = asyncProps.BoardStateCopy.CurrentPlayer;
 
-                BoardTree currentNode = ((AsyncProps)asyncProps).boardStateCopy.currentNode;
+                BoardTree currentNode = asyncProps.BoardStateCopy.CurrentNode;
                 if (GameManager.Instance.EnableLogging)
-                    ((AsyncProps)asyncProps).boardStateCopy.AddStateToTree();
+                    asyncProps.BoardStateCopy.AddStateToTree();
 
-                
+
                 //get score for that new board state
-                int score = MiniMax(((AsyncProps)asyncProps).boardStateCopy, 0, false,
-                    ((AsyncProps)asyncProps).boardStateCopy.CurrentPlayer,
-                    ((AsyncProps)asyncProps).boardStateCopy.CurrentRound); 
+                float score = MiniMax(asyncProps.BoardStateCopy, 0, false,
+                    asyncProps.BoardStateCopy.CurrentPlayer,
+                    asyncProps.BoardStateCopy.CurrentRound);
 
-                ((AsyncProps)asyncProps).boardStateCopy.currentNode.score = score;
-                ((AsyncProps)asyncProps).boardStateCopy.currentNode = currentNode;
+                asyncProps.BoardStateCopy.CurrentNode.Score = score;
+                asyncProps.BoardStateCopy.CurrentNode = currentNode;
 
                 //remove reference from copied board to reverse changes
-                ((AsyncProps)asyncProps).boardStateCopy.Board[((AsyncProps)asyncProps).row, ((AsyncProps)asyncProps).col] = 0;
+                asyncProps.BoardStateCopy.Board[asyncProps.Row, asyncProps.Col] = 0;
 
-                lock (((AsyncProps)asyncProps).tileScores)
-                    ((AsyncProps)asyncProps).tileScores.Add(new TileScore(((AsyncProps)asyncProps).row, ((AsyncProps)asyncProps).col, score, ((AsyncProps)asyncProps).boardStateCopy));
+                lock (asyncProps.TileScores)
+                    asyncProps.TileScores.Add(new TileScore(asyncProps.Row, asyncProps.Col, score, asyncProps.BoardStateCopy));
             }), new AsyncProps(row, col, new BoardState(originalBoardState), tileScores));
         }
 
@@ -164,78 +179,93 @@ public class EnemyAI : TileHandler
         {
             ThreadPool.GetAvailableThreads(out int workerThreads, out int completionPortThreads);
             if (workerThreads == maxWorkerThreads)
-                working = false; 
+                working = false;
         }
 
         tracker.Stop();
-        Debug.Log(tracker.ElapsedMilliseconds);
+        _durationOfAlgorithm = tracker.ElapsedMilliseconds;
+
+        Debug.Log("Max Depth: " + _maxDepth);
+        Debug.Log(_durationOfAlgorithm + " ms");
 
         TileScore? bestTile = null;
-        foreach (var tileScore in tileScores)
+        tileScores.ForEach(tileScore =>
         {
-            if (bestTile == null || tileScore.score > bestTile.Value.score)
+            if (bestTile == null || tileScore.Score > bestTile.Value.Score)
                 bestTile = tileScore;
-        }
+        });
+        List<TileScore> tileScoresClone = tileScores;
+        tileScoresClone.RemoveAll(tileScore => tileScore.Score != bestTile.Value.Score);
+        bestTile = tileScoresClone[Random.Range(0, tileScoresClone.Count)];
 
-        if (aiDifficulty == AIDifficulty.OptimalWithRandomness)
+        if (_currentDifficulty == AIDifficulty.OptimalWithRandomness)
         {
-            tileScores.Remove(bestTile.Value);
-            TileScore randomNonOptimal = tileScores[Random.Range(0, tileScores.Count)];
+            tileScoresClone = tileScores;
+            tileScoresClone.RemoveAll(tileScore => tileScore.Score == bestTile.Value.Score);
+            TileScore randomNonOptimal = tileScoresClone[Random.Range(0, tileScoresClone.Count)];
             if (Random.Range(1, 11) <= 3)
             {
                 bestTile = randomNonOptimal;
             }
         }
 
-        bestMove["row"] = bestTile.Value.row;
-        bestMove["col"] = bestTile.Value.col;
+        bestMove["row"] = bestTile.Value.Row;
+        bestMove["col"] = bestTile.Value.Col;
 
         if (GameManager.Instance.EnableLogging)
         {
-            tileScores.ForEach((tilescore) => tilescore.board.PrintTree());
+            tileScores.ForEach((tilescore) => tilescore.Board.PrintTree());
         }
-        GameObject bestMoveTile = Grid.Instance.TileMatrix[bestMove["row"], bestMove["col"]];
-        GameObject enemyAITile = Instantiate(playerPrefab, bestMoveTile.transform.GetChild(0));
-        enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
-        Grid.Instance.PlayerPerTile[bestMoveTile] = enemyAITile;
+        GameObject bestMoveTile = _playingField.TileMatrix[bestMove["row"], bestMove["col"]];
+        bestMoveTile.GetComponentInChildren<TileHandler>().PlaceTile(bestMoveTile.transform.GetChild(0));
     }
 
-    private int MiniMax(BoardState board, int depth, bool isMaximizing, int currentPlayer, int currentRound)
+    private float MiniMax(BoardState board, int depth, bool isMaximizing, int currentPlayer, int currentRound)
     {
+        if (depth > _maxDepth)
+            _maxDepth = depth;
+
         int winner = board.CheckForWin();
 
         if (winner == 0 && board.CurrentRound == board.Board.GetLength(0) * board.Board.GetLength(1))
             return 0;
-        
+
         if (winner != 0)
         {
-            int score = winner == GameManager.Instance.currentPlayer ? 1 : -1;
+            int score = winner == _playingField.CurrentPlayer ? 1 : -1;
             return score;
         }
+
+        if (depth >= _configuredMaxDepth)
+        {
+            return board.CheckForPrematureScore(isMaximizing);
+        }
+
+        board.CurrentPlayer = currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
+        board.CurrentRound = currentRound + 1;
 
         List<Tuple<int, int, int>> possibleMoves = new();
 
         if (isMaximizing)
         {
             //bestScore is initially the worst possible score, so its updated only when its better
-            int bestScore = -1;
-            int bestPossibleScore = 1;
+            float bestScore = -1;
+            float bestPossibleScore = 1;
 
             for (int row = 0; row < board.Board.GetLength(0); row++)
             {
                 for (int col = 0; col < board.Board.GetLength(0); col++)
                 {
                     //skip if tile is not empty
-                    if (board.Board[row, col] != 0) continue;
-                    
-                    board.CurrentPlayer = currentPlayer != GameManager.Instance.PlayerCount? currentPlayer + 1 : 1;
-                    board.CurrentRound = currentRound + 1;
+                    if (board.Board[row, col] != 0) 
+                        continue;
+
                     //place tile and get score for that new board state
                     board.Board[row, col] = board.CurrentPlayer;
 
                     int possibleTerminalScore = board.CheckForWin();
                     if (possibleTerminalScore != 0)
-                        possibleTerminalScore = possibleTerminalScore == GameManager.Instance.currentPlayer ? 1 : -1;
+                        possibleTerminalScore = possibleTerminalScore == _playingField.CurrentPlayer ? 1 : -1;
 
                     board.Board[row, col] = 0;
 
@@ -243,32 +273,29 @@ public class EnemyAI : TileHandler
                 }
             }
 
-            possibleMoves.Sort((x , y) => y.Item3.CompareTo(x.Item3));
+            possibleMoves.Sort((x, y) => y.Item3.CompareTo(x.Item3));
 
             foreach (var move in possibleMoves)
             {
-                board.CurrentPlayer = currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
-                board.CurrentRound = currentRound + 1;
                 //place tile and get score for that new board state
                 board.Board[move.Item1, move.Item2] = board.CurrentPlayer;
 
-                BoardTree currentNode = board.currentNode;
+                BoardTree currentNode = board.CurrentNode;
                 if (GameManager.Instance.EnableLogging)
                     board.AddStateToTree();
 
-                int score = MiniMax(board, depth + 1, false, board.CurrentPlayer, board.CurrentRound);
-                board.currentNode.score = score;
-                board.currentNode = currentNode;
+                float score = MiniMax(board, depth + 1, false, board.CurrentPlayer, board.CurrentRound);
+                board.CurrentNode.Score = score;
+                board.CurrentNode = currentNode;
 
                 //destroy tile and remove reference from grid to reverse changes
                 board.Board[move.Item1, move.Item2] = 0;
 
                 //update best score
                 bestScore = Math.Max(score, bestScore);
-                if (score ==  bestPossibleScore)
-                {
+                if (score >= bestPossibleScore)
                     return score;
-                }
+                
             }
 
             return bestScore;
@@ -276,24 +303,23 @@ public class EnemyAI : TileHandler
         else
         {
             //bestScore is initially the worst possible score, so its updated only when its better
-            int bestScore = 1;
-            int bestPossibleScore = -1;
+            float bestScore = 1;
+            float bestPossibleScore = -1;
 
             for (int row = 0; row < board.Board.GetLength(0); row++)
             {
                 for (int col = 0; col < board.Board.GetLength(0); col++)
                 {
                     //skip if tile is not empty
-                    if (board.Board[row, col] != 0) continue;
+                    if (board.Board[row, col] != 0) 
+                        continue;
 
-                    board.CurrentPlayer = currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
-                    board.CurrentRound = currentRound + 1;
                     //place tile and get score for that new board state
                     board.Board[row, col] = board.CurrentPlayer;
 
                     int possibleTerminalScore = board.CheckForWin();
                     if (possibleTerminalScore != 0)
-                        possibleTerminalScore = possibleTerminalScore == GameManager.Instance.currentPlayer ? 1 : -1;
+                        possibleTerminalScore = possibleTerminalScore == _playingField.CurrentPlayer ? 1 : -1;
 
                     board.Board[row, col] = 0;
 
@@ -305,47 +331,43 @@ public class EnemyAI : TileHandler
 
             foreach (var move in possibleMoves)
             {
-                board.CurrentPlayer = currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
-                board.CurrentRound = currentRound + 1;
                 //place tile and get score for that new board state
                 board.Board[move.Item1, move.Item2] = board.CurrentPlayer;
 
-                BoardTree currentNode = board.currentNode;
+                BoardTree currentNode = board.CurrentNode;
                 if (GameManager.Instance.EnableLogging)
                     board.AddStateToTree();
 
-                int score = MiniMax(board, depth + 1, true, board.CurrentPlayer, board.CurrentRound);
-                board.currentNode.score = score;
-                board.currentNode = currentNode;
+                float score = MiniMax(board, depth + 1, true, board.CurrentPlayer, board.CurrentRound);
+                board.CurrentNode.Score = score;
+                board.CurrentNode = currentNode;
 
                 //destroy tile and remove reference from grid to reverse changes
                 board.Board[move.Item1, move.Item2] = 0;
 
                 bestScore = Math.Min(score, bestScore);
-                if (score == bestPossibleScore)
+                if (score >= bestPossibleScore)
                     return score;
             }
             return bestScore;
-        } 
+        }
     }
 
     private void DumbAI()
     {
         //get all empty tiles
         List<GameObject> emptyTiles = new();
-        for(int row = 0; row < Grid.Instance.GridWidth; row++)
+        for (int row = 0; row < _playingField.GridWidth; row++)
         {
-            for(int col = 0; col < Grid.Instance.GridWidth; col++)
+            for (int col = 0; col < _playingField.GridWidth; col++)
             {
-                if(Grid.Instance.PlayerPerTile[Grid.Instance.TileMatrix[row, col]] == null) 
-                    emptyTiles.Add(Grid.Instance.TileMatrix[row, col]);
+                if (_playingField.PlayerPerTile[_playingField.TileMatrix[row, col]] == null)
+                    emptyTiles.Add(_playingField.TileMatrix[row, col]);
             }
         }
         //get random empty tile and place player tile with reference in grid
         GameObject emptyTile = emptyTiles[Random.Range(0, emptyTiles.Count)];
-        GameObject enemyAITile = Instantiate(playerPrefab, emptyTile.transform.GetChild(0));
-        enemyAITile.GetComponent<Image>().sprite = playerConfigSO.PlayerSymbols[GameManager.Instance.currentPlayer - 1];
-        Grid.Instance.PlayerPerTile[emptyTile] = enemyAITile;
+        emptyTile.GetComponentInChildren<TileHandler>().PlaceTile(emptyTile.transform.GetChild(0));
     }
 
 }
@@ -355,12 +377,14 @@ public class BoardState
     public int[,] Board;
 
     public int CurrentRound;
-    
+
     public int CurrentPlayer;
 
-    private readonly BoardTree root;
+    private readonly BoardTree _root;
 
-    public BoardTree currentNode;
+    public BoardTree CurrentNode;
+
+    private readonly Grid _playingField = GameManager.Instance.PlayingField;
 
 
     public BoardState(GameObject[,] tileMatrix, Dictionary<GameObject, GameObject> playerPerTile)
@@ -370,32 +394,35 @@ public class BoardState
         {
             for (int col = 0; col < tileMatrix.GetLength(1); col++)
             {
-                Board[row, col] = playerPerTile[tileMatrix[row, col]] == null ? 0 : Int32.Parse(playerPerTile[tileMatrix[row, col]].GetComponent<Image>().sprite.name[6].ToString());
+                Board[row, col] = playerPerTile[tileMatrix[row, col]] == null
+                    ? 0
+                    : Int32.Parse(playerPerTile[tileMatrix[row, col]].GetComponent<Image>().sprite.name[6].ToString());
             }
         }
-        root = new BoardTree();
-        currentNode = root;
-    } 
+
+        _root = new BoardTree();
+        CurrentNode = _root;
+    }
 
     public BoardState(BoardState boardState)
     {
         Board = (int[,])boardState.Board.Clone();
         CurrentRound = boardState.CurrentRound;
         CurrentPlayer = boardState.CurrentPlayer;
-        root = new BoardTree();
-        currentNode = root;
+        _root = new BoardTree();
+        CurrentNode = _root;
     }
 
     public void AddStateToTree()
     {
-        currentNode = currentNode.AddChild(CopyBoardState());
+        CurrentNode = CurrentNode.AddChild(CopyBoardState());
     }
 
-    public int[,] CopyBoardState() => (int[,]) Board.Clone();
+    public int[,] CopyBoardState() => (int[,])Board.Clone();
 
     public void PrintTree()
     {
-        Debug.Log(root.PrintTree());
+        Debug.Log(_root.PrintTree());
     }
 
     public int CheckForWin()
@@ -403,46 +430,50 @@ public class BoardState
         int horizontalWin = CheckForHorizontalWin();
         int verticalWin = CheckForVerticalWin();
         int diagonalWin = CheckForDiagonalWin();
-        if(horizontalWin != 0) return horizontalWin;
-        if(verticalWin != 0) return verticalWin;
-        if(diagonalWin != 0) return diagonalWin;
+        if (horizontalWin != 0) return horizontalWin;
+        if (verticalWin != 0) return verticalWin;
+        if (diagonalWin != 0) return diagonalWin;
         return 0;
     }
-    
+
     private int CheckForHorizontalWin()
     {
         for (int row = 0; row < Board.GetLength(0); row++)
         {
-            if(Board[row, 0] == 0) continue;
+            if (Board[row, 0] == 0) continue;
             int playerSymbol = Board[row, 0];
-            
+
             int playerTilesInRow = 1;
             for (int col = 1; col < Board.GetLength(1); col++)
             {
-                if(Board[row, col] == 0) break;
-                if(playerSymbol != Board[row, col]) break;
+                if (Board[row, col] == 0)
+                    break;
+                if (playerSymbol != Board[row, col])
+                    break;
                 playerTilesInRow++;
             }
+
             if (playerTilesInRow == Board.GetLength(1))
             {
                 return playerSymbol;
             }
         }
+
         return 0;
     }
-    
+
     private int CheckForVerticalWin()
     {
         for (int col = 0; col < Board.GetLength(1); col++)
         {
-            if(Board[0, col] == 0) continue;
+            if (Board[0, col] == 0) continue;
             int playerSymbol = Board[0, col];
-            
+
             int playerTilesInCol = 1;
             for (int row = 1; row < Board.GetLength(0); row++)
             {
-                if(Board[row, col] == 0) break;
-                if(playerSymbol != Board[row, col]) break;
+                if (Board[row, col] == 0) break;
+                if (playerSymbol != Board[row, col]) break;
                 playerTilesInCol++;
             }
 
@@ -451,49 +482,271 @@ public class BoardState
                 return playerSymbol;
             }
         }
+
         return 0;
     }
-    
+
     private int CheckForDiagonalWin()
     {
-        if(Board[0, 0] != 0)
+        if (Board[0, 0] != 0)
         {
             int playerSymbol = Board[0, 0];
             int playerTilesInDiagonal = 1;
             for (int i = 1; i < Board.GetLength(0); i++)
             {
-                if(Board[i, i] == 0) break;
-                if(playerSymbol != Board[i, i]) break;
+                if (Board[i, i] == 0) break;
+                if (playerSymbol != Board[i, i]) break;
                 playerTilesInDiagonal++;
             }
+
             if (playerTilesInDiagonal == Board.GetLength(0))
             {
                 return playerSymbol;
             }
         }
-        if(Board[0, Board.GetLength(1) - 1] != 0)
+
+        if (Board[0, Board.GetLength(1) - 1] != 0)
         {
             int playerSymbol = Board[0, Board.GetLength(1) - 1];
             int playerTilesInDiagonal = 1;
             for (int i = 1; i < Board.GetLength(0); i++)
             {
-                if(Board[i, Board.GetLength(1) - 1 - i] == 0) break;
-                if(playerSymbol != Board[i, Board.GetLength(1) - 1 - i]) break;
+                if (Board[i, Board.GetLength(1) - 1 - i] == 0) break;
+                if (playerSymbol != Board[i, Board.GetLength(1) - 1 - i]) break;
                 playerTilesInDiagonal++;
             }
+
             if (playerTilesInDiagonal == Board.GetLength(0))
             {
                 return playerSymbol;
             }
         }
+
         return 0;
     }
-}
 
-public enum AIDifficulty
-{
-    Random,
-    Dumb,
-    Optimal,
-    OptimalWithRandomness
+    public float CheckForPrematureScore(bool isMaximizing)
+    {
+        float horizontalPrematureScore = CheckForHorizontalPrematureScore();
+        float verticalPrematureScore = CheckForVerticalPrematureScore();
+        float diagonalPrematureScore = CheckForDiagonalPrematureScore();
+        if (isMaximizing)
+            return Math.Max(Math.Max(horizontalPrematureScore, verticalPrematureScore), diagonalPrematureScore);
+        else
+            return Math.Min(Math.Min(horizontalPrematureScore, verticalPrematureScore), diagonalPrematureScore);
+    }
+
+    private readonly HashSet<int> _alreadyNotPossibleRows = new();
+
+    private float CheckForHorizontalPrematureScore()
+    {
+        Dictionary<int, float> rowScoresForPlayers = new();
+        List<int> playersWithAlmostTerminalRows = new();
+        
+        for (int row = 0; row < Board.GetLength(0); row++)
+        {
+            if (_alreadyNotPossibleRows.Contains(row))
+                break;
+
+            int playerSymbol = 0;
+            int playerTilesInRow = 0;
+
+            for (int col = 0; col < Board.GetLength(1); col++)
+            {
+                if (playerSymbol != 0 && playerSymbol != Board[row, col])
+                {
+                    _alreadyNotPossibleRows.Add(row);
+                    break;
+                }
+
+                if (playerSymbol == 0 && Board[row, col] != 0)
+                    playerSymbol = Board[row, col];
+
+                playerTilesInRow++;
+            }
+
+            rowScoresForPlayers.TryAdd(playerSymbol, 0);
+            rowScoresForPlayers[playerSymbol] += (float) playerTilesInRow / Board.GetLength(0);
+            if (playerTilesInRow == Board.GetLength(0) - 1)
+                playersWithAlmostTerminalRows.Add(playerSymbol);
+
+        }
+
+        if (playersWithAlmostTerminalRows.Count > 0)
+        {
+            if (playersWithAlmostTerminalRows.Exists(player =>
+                    CurrentPlayer == _playingField.CurrentPlayer &&
+                    player != _playingField.CurrentPlayer))
+            {
+                return -1;
+            }
+
+            if (playersWithAlmostTerminalRows.Exists(player =>
+                    CurrentPlayer != _playingField.CurrentPlayer &&
+                    player == _playingField.CurrentPlayer &&
+                    (CurrentPlayer != GameManager.Instance.PlayerCount ? CurrentPlayer + 1 : 1) ==
+                    _playingField.CurrentPlayer))
+            {
+                return 1;
+            }
+        }
+
+        float overallScore = 0;
+        foreach (var playerScore in rowScoresForPlayers.Values)
+            overallScore += playerScore;
+
+        return overallScore;
+    }
+
+    private readonly HashSet<int> _alreadyNotPossibleCols = new();
+
+    private float CheckForVerticalPrematureScore()
+    {
+        Dictionary<int, float> colScoresForPlayers = new();
+        List<int> playersWithAlmostTerminalCols = new();
+
+        for (int col = 0; col < Board.GetLength(0); col++)
+        {
+            if (_alreadyNotPossibleCols.Contains(col))
+                break;
+
+            int playerSymbol = 0;
+            int playerTilesInCol = 0;
+
+            for (int row = 0; row < Board.GetLength(1); row++)
+            {
+                if (playerSymbol != 0 && playerSymbol != Board[row, col])
+                {
+                    _alreadyNotPossibleCols.Add(col);
+                    break;
+                }
+                    
+                if (playerSymbol == 0 && Board[row, col] != 0)
+                    playerSymbol = Board[row, col];
+
+                playerTilesInCol++;
+            }
+
+            colScoresForPlayers.TryAdd(playerSymbol, 0);
+            colScoresForPlayers[playerSymbol] += (float) playerTilesInCol / Board.GetLength(0);
+            if (playerTilesInCol == Board.GetLength(0) - 1)
+                playersWithAlmostTerminalCols.Add(playerSymbol);
+
+        }
+
+        if (playersWithAlmostTerminalCols.Count > 0)
+        {
+            if (playersWithAlmostTerminalCols.Exists(player =>
+                    CurrentPlayer == _playingField.CurrentPlayer &&
+                    player != _playingField.CurrentPlayer))
+            {
+                return -1;
+            }
+
+            if (playersWithAlmostTerminalCols.Exists(player =>
+                    CurrentPlayer != _playingField.CurrentPlayer &&
+                    player == _playingField.CurrentPlayer &&
+                    (CurrentPlayer != GameManager.Instance.PlayerCount ? CurrentPlayer + 1 : 1) ==
+                    _playingField.CurrentPlayer))
+            {
+                return 1;
+            }
+        }
+
+        float overallScore = 0;
+        foreach (var playerScore in colScoresForPlayers.Values)
+            overallScore += playerScore;
+
+        return overallScore;
+    }
+
+    private readonly HashSet<int> _alreadyNotPossibleDiagonals = new();
+
+    private float CheckForDiagonalPrematureScore()
+    {
+        Dictionary<int, float> diagonalScoresForPlayers = new();
+        List<int> playersWithAlmostTerminalDiagonals = new();
+
+        {
+            if (!_alreadyNotPossibleDiagonals.Contains(1))
+            {
+
+
+                int playerSymbol = 0;
+                int playerTilesInDiagonal = 0;
+                for (int i = 0; i < Board.GetLength(0); i++)
+                {
+                    if (playerSymbol != 0 && playerSymbol != Board[i, i])
+                    {
+                        _alreadyNotPossibleDiagonals.Add(1);
+                        break;
+                    }
+
+                    if (playerSymbol == 0 && Board[i, i] != 0)
+                        playerSymbol = Board[i, i];
+
+                    playerTilesInDiagonal++;
+                }
+
+                diagonalScoresForPlayers.TryAdd(playerSymbol, 0);
+                diagonalScoresForPlayers[playerSymbol] += (float)playerTilesInDiagonal / Board.GetLength(0);
+                if (playerTilesInDiagonal == Board.GetLength(0) - 1)
+                    playersWithAlmostTerminalDiagonals.Add(playerSymbol);
+            }
+        }
+
+        
+        {
+            if (!_alreadyNotPossibleDiagonals.Contains(2))
+            {
+
+                int playerSymbol = 0;
+                int playerTilesInDiagonal = 0;
+                for (int i = 0; i < Board.GetLength(0); i++)
+                {
+                    int colPosition = Board.GetLength(0) - 1 - i;
+                    if (playerSymbol != 0 && playerSymbol != Board[i, colPosition])
+                    {
+                        _alreadyNotPossibleDiagonals.Add(2);
+                        break;
+                    }
+
+                    if (playerSymbol == 0 && Board[i, colPosition] != 0)
+                        playerSymbol = Board[i, colPosition];
+
+                    playerTilesInDiagonal++;
+                }
+
+                diagonalScoresForPlayers.TryAdd(playerSymbol, 0);
+                diagonalScoresForPlayers[playerSymbol] += (float)playerTilesInDiagonal / Board.GetLength(0);
+                if (playerTilesInDiagonal == Board.GetLength(0) - 1)
+                    playersWithAlmostTerminalDiagonals.Add(playerSymbol);
+            }
+        }
+
+        if (playersWithAlmostTerminalDiagonals.Count > 0)
+        {
+            if (playersWithAlmostTerminalDiagonals.Exists(player =>
+                    CurrentPlayer == _playingField.CurrentPlayer &&
+                    player != _playingField.CurrentPlayer))
+            {
+                return -1;
+            }
+
+            if (playersWithAlmostTerminalDiagonals.Exists(player =>
+                    CurrentPlayer != _playingField.CurrentPlayer &&
+                    player == _playingField.CurrentPlayer &&
+                    (CurrentPlayer != GameManager.Instance.PlayerCount ? CurrentPlayer + 1 : 1) ==
+                    _playingField.CurrentPlayer))
+            {
+                return 1;
+            }
+        }
+
+        float overallScore = 0;
+        foreach (var playerScore in diagonalScoresForPlayers.Values)
+            overallScore += playerScore;
+
+        return overallScore;
+    }
 }
