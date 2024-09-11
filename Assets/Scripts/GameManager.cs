@@ -8,35 +8,43 @@ public class GameManager : MonoBehaviour
     //Singleton reference
     public static GameManager Instance;
 
-    [SerializeField] private GameObject canvas;
+    [SerializeField] 
+    private GameObject _canvas;
     
-    [SerializeField] GameObject tilePrefab;
-    
-    [SerializeField] [Range(2, 10)] private int width = 3;
-    
-    [SerializeField] [Range(2, 5)] private int playerCount = 2;
-    public int PlayerCount => playerCount;
-    
-    [SerializeField] private bool isAIEnabled;
-    public bool IsAIEnabled => isAIEnabled;
+    [SerializeField] 
+    private GameObject _tilePrefab;
 
-    [SerializeField] private bool enableLogging;
-    public bool EnableLogging => enableLogging;
+    [SerializeField][Range(2, 10)] 
+    private int _width = 3;
+    
+    [SerializeField] [Range(2, 5)] 
+    public int PlayerCount = 2;
 
-    [HideInInspector] public int currentPlayer = 1;
+    [SerializeField] 
+    public bool IsAiEnabled;
 
-    [HideInInspector] public int round = 0;
+    [SerializeField]
+    public AIDifficulty AiDifficulty;
+
+    [SerializeField]
+    public bool EnableLogging;
+
+    public Grid PlayingField { get; private set; }
+
+    [HideInInspector] 
+    public bool GameOver { get; private set; }
 
     //Spawn Grid and populate player array
     private void Awake()
     {
         Instance = this;
-        Grid grid = new Grid(canvas, tilePrefab, width);
-        Grid.OnGameOver += HandleGameOver;
+        PlayingField = new Grid(_canvas, _tilePrefab, _width);
+        PlayingField.OnGameOver += HandleGameOver;
     }
     
     private void HandleGameOver(bool isGameWon, int player)
     {
+        GameOver = true;
         if(isGameWon) Debug.Log($"Player {player} won the game!");
         else Debug.Log("Draw!");
     }
