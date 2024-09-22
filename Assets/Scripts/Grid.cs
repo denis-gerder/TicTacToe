@@ -39,7 +39,7 @@ public class Grid
             for (int col = 0; col < gridWidth; col++)
             {
                 GameObject tileInstance = Object.Instantiate(tilePrefab, _gridInstance.transform);
-                TileHandler tileHandlerInstance = tileInstance.GetComponentInChildren<TileHandler>();
+                TileHandler tileHandlerInstance = tileInstance.GetComponent<TileHandler>();
                 tileHandlerInstance.SetupPlayingFieldReference(this);
 
                 PlayerPerTile.Add(tileInstance, null);

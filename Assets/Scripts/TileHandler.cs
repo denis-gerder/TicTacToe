@@ -1,7 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -14,9 +12,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
     [SerializeField] 
     public PlayerConfigSO PlayerConfigSo;
     
-    private Image _image;
-    
-    protected bool GameOver = false;
+    private Image _mouseOverVisual;
 
     //Opacity of the Mouse Over Visual in percent
     private const int MouseOverOpacity = 50;
@@ -30,7 +26,7 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
     
     private void Awake()
     {
-        _image = GetComponent<Image>();
+        _mouseOverVisual = gameObject.transform.GetChild(0).GetComponent<Image>();
     }
 
     public void SetupPlayingFieldReference(Grid playingField)
@@ -38,48 +34,40 @@ public class TileHandler : MonoBehaviour, IPointerEnterHandler, IPointerDownHand
         _playingField = playingField;
     }
 
-    public static void InvokeOnPlayerTilePlaced()
-    {
-        OnPlayerTilePlaced?.Invoke();
-    }
-
     public void OnPointerEnter(PointerEventData eventData)
     {
         //do not show visual if tile is already occupied
-        if(_playingField.PlayerPerTile[gameObject.transform.parent.gameObject] != null) 
+        if(_playingField.PlayerPerTile[gameObject] != null) 
             return;
-        StartCoroutine(FadeInVisual(_image));
+        StartCoroutine(FadeInVisual(_mouseOverVisual));
     }
     
     public void OnPointerExit(PointerEventData eventData)
     {
         //do not show visual if tile is already occupied
-        if(_playingField.PlayerPerTile[gameObject.transform.parent.gameObject] != null) 
+        if(_playingField.PlayerPerTile[gameObject] != null) 
             return;
-        StartCoroutine(FadeOutVisual(_image));
+        StartCoroutine(FadeOutVisual(_mouseOverVisual));
     }
     
     public void OnPointerDown(PointerEventData eventData)
     {
         //return if tile is already occupied or if AI is enabled and it's the AI's turn
-        if ((GameManager.Instance.IsAiEnabled && _playingField.CurrentPlayer != 1) || _playingField.PlayerPerTile[gameObject.transform.parent.gameObject] != null || GameOver) 
+        if ((GameManager.Instance.IsAiEnabled && _playingField.CurrentPlayer != 1) || _playingField.PlayerPerTile[gameObject] != null || GameManager.Instance.GameOver) 
             return;
         
         //spawn player tile and set reference to tile in grid
         PlaceTile(transform);
-        
-        StartCoroutine(FadeOutVisual(_image));
 
-        //turn ends and next player is set
-
-        InvokeOnPlayerTilePlaced();
+        StartCoroutine(FadeOutVisual(_mouseOverVisual));
     }
 
     public void PlaceTile(Transform parentTransform)
     {
         GameObject playerTile = Instantiate(_playerPrefab, parentTransform);
         playerTile.GetComponent<Image>().sprite = PlayerConfigSo.PlayerSymbols[_playingField.CurrentPlayer - 1];
-        _playingField.PlayerPerTile[gameObject.transform.parent.gameObject] = playerTile;
+        _playingField.PlayerPerTile[gameObject] = playerTile;
+        OnPlayerTilePlaced?.Invoke();
     }
 
     private IEnumerator FadeInVisual(Image image)

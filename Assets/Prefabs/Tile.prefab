@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4330534543572037843}
   - component: {fileID: 360883014216013995}
   - component: {fileID: 7940671388545701356}
+  - component: {fileID: 1114301456567139376}
   m_Layer: 0
   m_Name: Tile
   m_TagString: Untagged
@@ -77,6 +78,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2603811997576117345}
   m_CullTransparentMesh: 0
+--- !u!114 &1114301456567139376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2603811997576117345}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe8b8e0a98e3fa24cbfafc52ee50dfe3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _playerPrefab: {fileID: 8990641519522348509, guid: c951c86446b83b049ab42fe4f37e4b97, type: 3}
+  PlayerConfigSo: {fileID: 11400000, guid: b7ef5cb710a92594588a196fbbdb5579, type: 2}
 --- !u!1 &2661866253672833907
 GameObject:
   m_ObjectHideFlags: 0
@@ -88,7 +103,6 @@ GameObject:
   - component: {fileID: 1067586511264414147}
   - component: {fileID: 7291752516832491254}
   - component: {fileID: 6027781330804942713}
-  - component: {fileID: 4288621215347695834}
   m_Layer: 0
   m_Name: MouseOverVisual
   m_TagString: Untagged
@@ -154,17 +168,3 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &4288621215347695834
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2661866253672833907}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe8b8e0a98e3fa24cbfafc52ee50dfe3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _playerPrefab: {fileID: 8990641519522348509, guid: c951c86446b83b049ab42fe4f37e4b97, type: 3}
-  PlayerConfigSo: {fileID: 11400000, guid: b7ef5cb710a92594588a196fbbdb5579, type: 2}
