@@ -1,13 +1,20 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "GameConfigSO", menuName = "ScriptableObjects/GameConfigSO", order = 1)]
-public class GameConfigSO : ScriptableObject
+namespace TicTacToe
 {
-    public int PlayerAmount;
+    [CreateAssetMenu(
+        fileName = "GameConfigSO",
+        menuName = "ScriptableObjects/GameConfigSO",
+        order = 1
+    )]
+    public class GameConfigSO : ScriptableObject
+    {
+        public int PlayerAmount;
 
-    public int BoardSize;
+        public int BoardSize;
 
-    public bool AIEnabled;
+        public bool AIEnabled;
 
-    public AIDifficulty AIDifficulty;
+        public AIDifficulty AIDifficulty;
+    }
 }

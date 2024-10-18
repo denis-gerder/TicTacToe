@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
 
-namespace Assets.Scripts
+namespace TicTacToe
 {
     public class BoardTree
     {
-
         public int[,] Data;
         private BoardTree _parent;
         private readonly LinkedList<BoardTree> _children;
@@ -13,7 +12,6 @@ namespace Assets.Scripts
 
         private static int _idTracker = 0;
         private readonly int _id;
-
 
         public BoardTree()
         {
@@ -45,8 +43,11 @@ namespace Assets.Scripts
         public BoardTree GetChild(int i)
         {
             foreach (BoardTree childTree in _children)
+            {
                 if (--i == 0)
                     return childTree;
+            }
+
             return null;
         }
 
@@ -80,7 +81,6 @@ namespace Assets.Scripts
             _stringRepresentation = "";
             for (int i = nodesAtDepth[0].Data.GetLength(0); i >= -1; i--)
             {
-
                 BoardTree parent = new();
                 foreach (BoardTree child in nodesAtDepth)
                 {
@@ -93,11 +93,15 @@ namespace Assets.Scripts
                     if (i == nodesAtDepth[0].Data.GetLength(0))
                     {
                         string idString = child._id + ":" + parent._id;
-                        int stringLengthPerBoard = nodesAtDepth[0].Data.GetLength(0) * 2 + 5;
+                        int stringLengthPerBoard = (nodesAtDepth[0].Data.GetLength(0) * 2) + 5;
 
                         _stringRepresentation += idString;
 
-                        for (int j = 0; j < stringLengthPerBoard - (int)(idString.Length * 1.2); j++)
+                        for (
+                            int j = 0;
+                            j < stringLengthPerBoard - (int)(idString.Length * 1.2);
+                            j++
+                        )
                         {
                             _stringRepresentation += " ";
                         }
@@ -105,7 +109,7 @@ namespace Assets.Scripts
                     else if (i == -1)
                     {
                         string scoreString = "Sc: " + child.Score;
-                        int stringLengthPerBoard = nodesAtDepth[0].Data.GetLength(0) * 2 + 5;
+                        int stringLengthPerBoard = (nodesAtDepth[0].Data.GetLength(0) * 2) + 5;
                         if (child._children.Count == 0)
                         {
                             scoreString += "T";
@@ -113,7 +117,11 @@ namespace Assets.Scripts
 
                         _stringRepresentation += scoreString;
 
-                        for (int j = 0; j < stringLengthPerBoard - (int)(scoreString.Length * 1.17); j++)
+                        for (
+                            int j = 0;
+                            j < stringLengthPerBoard - (int)(scoreString.Length * 1.17);
+                            j++
+                        )
                         {
                             _stringRepresentation += " ";
                         }
@@ -126,7 +134,6 @@ namespace Assets.Scripts
                         }
                         _stringRepresentation += "     ";
                     }
-
                 }
                 _stringRepresentation += "\n";
             }
@@ -134,7 +141,11 @@ namespace Assets.Scripts
             return _stringRepresentation;
         }
 
-        private void PutNodesForDepths(BoardTree node, Dictionary<int, List<BoardTree>> nodesPerDepth, int depth)
+        private void PutNodesForDepths(
+            BoardTree node,
+            Dictionary<int, List<BoardTree>> nodesPerDepth,
+            int depth
+        )
         {
             if (!nodesPerDepth.ContainsKey(depth))
             {

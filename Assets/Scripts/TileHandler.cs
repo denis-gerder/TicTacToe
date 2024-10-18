@@ -4,151 +4,162 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class TileHandler
-    : MonoBehaviour,
-        IPointerEnterHandler,
-        IPointerDownHandler,
-        IPointerExitHandler
+namespace TicTacToe
 {
-    [SerializeField]
-    private GameObject _playerPrefab;
-
-    [SerializeField]
-    public PlayerConfigSO PlayerConfigSo;
-
-    private Image _mouseOverVisual;
-
-    //Opacity of the Mouse Over Visual in percent
-    private readonly int _maximumMouseOverOpacity = 50;
-
-    private readonly float _fadeDuration = 0.25f;
-
-    private readonly Func<float, float> _easingFunction = x =>
-        (float)-(Math.Cos(Math.PI * x) - 1) / 2;
-
-    public static event Action OnPlayerTilePlaced;
-
-    private Grid _playingField;
-
-    private void Awake()
+    public class TileHandler
+        : MonoBehaviour,
+            IPointerEnterHandler,
+            IPointerDownHandler,
+            IPointerExitHandler
     {
-        _mouseOverVisual = gameObject.transform.GetChild(0).GetComponent<Image>();
-    }
+        [SerializeField]
+        private GameObject _playerPrefab;
 
-    public void SetupPlayingFieldReference(Grid playingField)
-    {
-        _playingField = playingField;
-    }
+        public PlayerConfigSO PlayerConfigSo;
 
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        //do not show visual if tile is already occupied
-        if (_playingField.PlayerPerTile[gameObject] != null)
-            return;
-        StopAllCoroutines();
-        StartCoroutine(
-            FadeInVisual(_mouseOverVisual, _easingFunction, _fadeDuration, _maximumMouseOverOpacity)
-        );
-    }
+        private Image _mouseOverVisual;
 
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        //do not show visual if tile is already occupied
-        if (_playingField.PlayerPerTile[gameObject] != null)
-            return;
-        StopAllCoroutines();
-        StartCoroutine(
-            FadeOutVisual(
-                _mouseOverVisual,
-                _easingFunction,
-                _fadeDuration,
-                _maximumMouseOverOpacity
-            )
-        );
-    }
+        //Opacity of the Mouse Over Visual in percent
+        private readonly int _maximumMouseOverOpacity = 50;
 
-    public void OnPointerDown(PointerEventData eventData)
-    {
-        //return if tile is already occupied or if AI is enabled and it's the AI's turn
-        if (
-            (GameManager.Instance.IsAiEnabled && _playingField.CurrentPlayer != 1)
-            || _playingField.PlayerPerTile[gameObject] != null
-            || GameManager.Instance.GameOver
-        )
-            return;
+        private readonly float _fadeDuration = 0.25f;
 
-        //spawn player tile and set reference to tile in grid
-        PlaceTile(transform);
+        private readonly Func<float, float> _easingFunction = x =>
+            (float)-(Math.Cos(Math.PI * x) - 1) / 2;
 
-        StopAllCoroutines();
-        StartCoroutine(
-            FadeOutVisual(
-                _mouseOverVisual,
-                _easingFunction,
-                _fadeDuration,
-                _maximumMouseOverOpacity
-            )
-        );
-    }
+        public static event Action OnPlayerTilePlaced;
 
-    public void PlaceTile(Transform parentTransform)
-    {
-        GameObject playerTile = Instantiate(_playerPrefab, parentTransform);
-        playerTile.GetComponent<Image>().sprite = PlayerConfigSo.PlayerSymbols[
-            _playingField.CurrentPlayer - 1
-        ];
-        _playingField.PlayerPerTile[gameObject] = playerTile;
-        OnPlayerTilePlaced?.Invoke();
-    }
+        private Grid _playingField;
 
-    public static IEnumerator FadeInVisual(
-        Image image,
-        Func<float, float> easingFunction,
-        float fadeDuration,
-        float maximumOpacity
-    )
-    {
-        float startingTime = Time.time;
-        float currentTime = startingTime;
-        Color tempColor = image.color;
-        while (currentTime - fadeDuration <= startingTime)
+        private void Awake()
         {
-            tempColor.a =
-                easingFunction((currentTime - startingTime) / fadeDuration) * maximumOpacity / 100f;
-            image.color = tempColor;
-
-            yield return 0;
-            currentTime = Time.time;
+            _mouseOverVisual = gameObject.transform.GetChild(0).GetComponent<Image>();
         }
-        tempColor.a = maximumOpacity;
-        image.color = tempColor;
-    }
 
-    public static IEnumerator FadeOutVisual(
-        Image image,
-        Func<float, float> easingFunction,
-        float fadeDuration,
-        float maximumOpacity
-    )
-    {
-        float startingTime = Time.time;
-        float currentTime = startingTime;
-        Color tempColor = image.color;
-        while (currentTime - fadeDuration <= startingTime)
+        public void SetupPlayingFieldReference(Grid playingField)
         {
-            tempColor.a =
-                (maximumOpacity / 100f)
-                - (
+            _playingField = playingField;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            //do not show visual if tile is already occupied
+            if (_playingField.PlayerPerTile[gameObject] != null)
+                return;
+            StopAllCoroutines();
+            StartCoroutine(
+                FadeInVisual(
+                    _mouseOverVisual,
+                    _easingFunction,
+                    _fadeDuration,
+                    _maximumMouseOverOpacity
+                )
+            );
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            //do not show visual if tile is already occupied
+            if (_playingField.PlayerPerTile[gameObject] != null)
+                return;
+            StopAllCoroutines();
+            StartCoroutine(
+                FadeOutVisual(
+                    _mouseOverVisual,
+                    _easingFunction,
+                    _fadeDuration,
+                    _maximumMouseOverOpacity
+                )
+            );
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            //return if tile is already occupied or if AI is enabled and it's the AI's turn
+            if (
+                (GameManager.Instance.IsAiEnabled && _playingField.CurrentPlayer != 1)
+                || _playingField.PlayerPerTile[gameObject] != null
+                || GameManager.Instance.GameOver
+            )
+            {
+                return;
+            }
+
+            //spawn player tile and set reference to tile in grid
+            PlaceTile(transform);
+
+            StopAllCoroutines();
+            StartCoroutine(
+                FadeOutVisual(
+                    _mouseOverVisual,
+                    _easingFunction,
+                    _fadeDuration,
+                    _maximumMouseOverOpacity
+                )
+            );
+        }
+
+        public void PlaceTile(Transform parentTransform)
+        {
+            GameObject playerTile = Instantiate(_playerPrefab, parentTransform);
+            playerTile.GetComponent<Image>().sprite = PlayerConfigSo.PlayerSymbols[
+                _playingField.CurrentPlayer - 1
+            ];
+            _playingField.PlayerPerTile[gameObject] = playerTile;
+            OnPlayerTilePlaced?.Invoke();
+        }
+
+        public static IEnumerator FadeInVisual(
+            Image image,
+            Func<float, float> easingFunction,
+            float fadeDuration,
+            float maximumOpacity
+        )
+        {
+            float startingTime = Time.time;
+            float currentTime = startingTime;
+            Color tempColor = image.color;
+            while (currentTime - fadeDuration <= startingTime)
+            {
+                tempColor.a =
                     easingFunction((currentTime - startingTime) / fadeDuration)
                     * maximumOpacity
-                    / 100f
-                );
-            image.color = tempColor;
+                    / 100f;
+                image.color = tempColor;
 
-            yield return 0;
-            currentTime = Time.time;
+                yield return 0;
+                currentTime = Time.time;
+            }
+            tempColor.a = maximumOpacity;
+            image.color = tempColor;
         }
-        tempColor.a = 0;
-        image.color = tempColor;
+
+        public static IEnumerator FadeOutVisual(
+            Image image,
+            Func<float, float> easingFunction,
+            float fadeDuration,
+            float maximumOpacity
+        )
+        {
+            float startingTime = Time.time;
+            float currentTime = startingTime;
+            Color tempColor = image.color;
+            while (currentTime - fadeDuration <= startingTime)
+            {
+                tempColor.a =
+                    (maximumOpacity / 100f)
+                    - (
+                        easingFunction((currentTime - startingTime) / fadeDuration)
+                        * maximumOpacity
+                        / 100f
+                    );
+                image.color = tempColor;
+
+                yield return 0;
+                currentTime = Time.time;
+            }
+            tempColor.a = 0;
+            image.color = tempColor;
+        }
     }
 }
