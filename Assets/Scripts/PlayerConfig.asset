@@ -15,6 +15,5 @@ MonoBehaviour:
   PlayerSymbols:
   - {fileID: 21300000, guid: a637728b21c839a4bb3aab2c12dff666, type: 3}
   - {fileID: 21300000, guid: a673ba6dfe0fd0342b110d5d25f01ada, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 21300000, guid: b257e0f6f6900314aa1d3b914f7daffd, type: 3}
+  - {fileID: 21300000, guid: dc32a4be33340bd4aa915a2b14e55635, type: 3}

@@ -1,9 +1,9 @@
-using Assets.Scripts;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Assets.Scripts;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
@@ -12,10 +12,9 @@ public enum AIDifficulty
 {
     Random,
     Dumb,
+    OptimalWithRandomness,
     Optimal,
-    OptimalWithRandomness
 }
-
 
 public class EnemyAI : MonoBehaviour
 {
@@ -39,7 +38,11 @@ public class EnemyAI : MonoBehaviour
     private void HandleTurnEnd()
     {
         //return if AI is disabled or if it's not the AI's turn
-        if (!GameManager.Instance.IsAiEnabled || _playingField.CurrentPlayer == 1 || GameManager.Instance.GameOver) 
+        if (
+            !GameManager.Instance.IsAiEnabled
+            || _playingField.CurrentPlayer == 1
+            || GameManager.Instance.GameOver
+        )
             return;
 
         if (_currentDifficulty == AIDifficulty.Random)
@@ -72,8 +75,7 @@ public class EnemyAI : MonoBehaviour
         public readonly float Score;
         public readonly BoardState Board;
 
-        public TileScore(int row, int col, float score, BoardState board
-        )
+        public TileScore(int row, int col, float score, BoardState board)
         {
             this.Row = row;
             this.Col = col;
@@ -100,8 +102,6 @@ public class EnemyAI : MonoBehaviour
 
     private void SmartAI()
     {
-        //store best move to place next tile as row and col
-        
         //create simple copy of the board state as integers to reduce complexity of placing and removing tiles as game objects
         BoardState originalBoardState = new(_playingField.TileMatrix, _playingField.PlayerPerTile);
         originalBoardState.CurrentPlayer = _playingField.CurrentPlayer;
@@ -128,16 +128,32 @@ public class EnemyAI : MonoBehaviour
             int row = move.Item1;
             int col = move.Item2;
 
-            ThreadPool.QueueUserWorkItem(worker =>
-            {
-                AsyncProps asyncProps = (AsyncProps)worker;
+            ThreadPool.QueueUserWorkItem(
+                worker =>
+                {
+                    AsyncProps asyncProps = (AsyncProps)worker;
 
-                //maximizing = true because its reverted in function (maximizing bezieht sich eigentlich auf den gesamten Zug vorher und die KI will ja eigentlich maximieren)
-                SetupAndDoMiniMaxForMove(asyncProps.BoardStateCopy, move, -1, true, out float score);
+                    //maximizing = true because its reverted in function (maximizing bezieht sich eigentlich auf den gesamten Zug vorher und die KI will ja eigentlich maximieren)
+                    SetupAndDoMiniMaxForMove(
+                        asyncProps.BoardStateCopy,
+                        move,
+                        -1,
+                        true,
+                        out float score
+                    );
 
-                lock (asyncProps.TileScores)
-                    asyncProps.TileScores.Add(new TileScore(asyncProps.Row, asyncProps.Col, score, asyncProps.BoardStateCopy));
-            }, new AsyncProps(row, col, new BoardState(originalBoardState), tileScores));
+                    lock (asyncProps.TileScores)
+                        asyncProps.TileScores.Add(
+                            new TileScore(
+                                asyncProps.Row,
+                                asyncProps.Col,
+                                score,
+                                asyncProps.BoardStateCopy
+                            )
+                        );
+                },
+                new AsyncProps(row, col, new BoardState(originalBoardState), tileScores)
+            );
         }
 
         bool working = true;
@@ -176,11 +192,8 @@ public class EnemyAI : MonoBehaviour
             }
         }
 
-        Dictionary<string, int> bestMove = new()
-        {
-            ["row"] = bestTile.Value.Row,
-            ["col"] = bestTile.Value.Col
-        };
+        Dictionary<string, int> bestMove =
+            new() { ["row"] = bestTile.Value.Row, ["col"] = bestTile.Value.Col };
 
         if (GameManager.Instance.EnableLogging)
             tileScores.ForEach((tilescore) => tilescore.Board.PrintTree());
@@ -189,7 +202,13 @@ public class EnemyAI : MonoBehaviour
         bestMoveTile.GetComponent<TileHandler>().PlaceTile(bestMoveTile.transform);
     }
 
-    private void SetupAndDoMiniMaxForMove(BoardState board, Tuple<int, int, int> move, int depth, bool isMaximizing, out float score) 
+    private void SetupAndDoMiniMaxForMove(
+        BoardState board,
+        Tuple<int, int, int> move,
+        int depth,
+        bool isMaximizing,
+        out float score
+    )
     {
         //place tile and get score for that new board state
         board.Board[move.Item1, move.Item2] = board.CurrentPlayer;
@@ -206,14 +225,23 @@ public class EnemyAI : MonoBehaviour
         board.Board[move.Item1, move.Item2] = 0;
     }
 
-    private float MiniMax(BoardState board, int depth, bool isMaximizing, int currentPlayer, int currentRound)
+    private float MiniMax(
+        BoardState board,
+        int depth,
+        bool isMaximizing,
+        int currentPlayer,
+        int currentRound
+    )
     {
         if (depth > _maxDepth)
             _maxDepth = depth;
 
         int winner = board.CheckForWin();
 
-        if (winner == 0 && board.CurrentRound == board.Board.GetLength(0) * board.Board.GetLength(1))
+        if (
+            winner == 0
+            && board.CurrentRound == board.Board.GetLength(0) * board.Board.GetLength(1)
+        )
             return 0;
 
         if (winner != 0)
@@ -227,7 +255,8 @@ public class EnemyAI : MonoBehaviour
             return board.CheckForPrematureScore(isMaximizing);
         }
 
-        board.CurrentPlayer = currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
+        board.CurrentPlayer =
+            currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
         board.CurrentRound = currentRound + 1;
 
         List<Tuple<int, int, int>> possibleMoves = new();
@@ -243,7 +272,7 @@ public class EnemyAI : MonoBehaviour
                 for (int col = 0; col < board.Board.GetLength(0); col++)
                 {
                     //skip if tile is not empty
-                    if (board.Board[row, col] != 0) 
+                    if (board.Board[row, col] != 0)
                         continue;
 
                     //place tile and get score for that new board state
@@ -251,7 +280,8 @@ public class EnemyAI : MonoBehaviour
 
                     int possibleTerminalScore = board.CheckForWin();
                     if (possibleTerminalScore != 0)
-                        possibleTerminalScore = possibleTerminalScore == _playingField.CurrentPlayer ? 1 : -1;
+                        possibleTerminalScore =
+                            possibleTerminalScore == _playingField.CurrentPlayer ? 1 : -1;
 
                     board.Board[row, col] = 0;
 
@@ -269,7 +299,6 @@ public class EnemyAI : MonoBehaviour
                 bestScore = Math.Max(score, bestScore);
                 if (score >= bestPossibleScore)
                     return score;
-                
             }
 
             return bestScore;
@@ -285,7 +314,7 @@ public class EnemyAI : MonoBehaviour
                 for (int col = 0; col < board.Board.GetLength(0); col++)
                 {
                     //skip if tile is not empty
-                    if (board.Board[row, col] != 0) 
+                    if (board.Board[row, col] != 0)
                         continue;
 
                     //place tile and get score for that new board state
@@ -293,7 +322,8 @@ public class EnemyAI : MonoBehaviour
 
                     int possibleTerminalScore = board.CheckForWin();
                     if (possibleTerminalScore != 0)
-                        possibleTerminalScore = possibleTerminalScore == _playingField.CurrentPlayer ? 1 : -1;
+                        possibleTerminalScore =
+                            possibleTerminalScore == _playingField.CurrentPlayer ? 1 : -1;
 
                     board.Board[row, col] = 0;
 
@@ -331,5 +361,4 @@ public class EnemyAI : MonoBehaviour
         GameObject emptyTile = emptyTiles[Random.Range(0, emptyTiles.Count)];
         emptyTile.GetComponent<TileHandler>().PlaceTile(emptyTile.transform);
     }
-
 }

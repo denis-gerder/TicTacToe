@@ -28,7 +28,7 @@ public class BoardState
             {
                 Board[row, col] = playerPerTile[tileMatrix[row, col]] == null
                     ? 0
-                    : Int32.Parse(playerPerTile[tileMatrix[row, col]].GetComponent<Image>().sprite.name[6].ToString());
+                    : playerPerTile[tileMatrix[row, col]].transform.parent.GetComponent<TileHandler>().PlayerConfigSo.PlayerSymbols.IndexOf(playerPerTile[tileMatrix[row, col]].GetComponent<Image>().sprite) + 1;
             }
         }
 
