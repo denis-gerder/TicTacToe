@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Scripts;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
 namespace TicTacToe
@@ -20,19 +20,14 @@ namespace TicTacToe
     public class EnemyAI : MonoBehaviour
     {
         private AIDifficulty _currentDifficulty;
-        private int _maxDepth;
-        private long _durationOfAlgorithm;
-        private readonly int _configuredMaxDepth = 7;
+        public long DurationOfAlgorithm { get; private set; }
+        public int _configuredMaxDepth;
         private Grid _playingField;
-
-        protected void Awake()
-        {
-            _currentDifficulty = GameManager.Instance.AiDifficulty;
-        }
 
         public void SetupPlayingFieldReference(Grid playingField)
         {
             _playingField = playingField;
+            _currentDifficulty = _playingField.GameConfig.AIDifficulty;
             _playingField.OnTurnEnd += HandleTurnEnd;
         }
 
@@ -40,9 +35,9 @@ namespace TicTacToe
         {
             //return if AI is disabled or if it's not the AI's turn
             if (
-                !GameManager.Instance.IsAiEnabled
+                !_playingField.GameConfig.AIEnabled
                 || _playingField.CurrentPlayer == 1
-                || GameManager.Instance.GameOver
+                || GameManager.GameOver
             )
             {
                 return;
@@ -112,13 +107,10 @@ namespace TicTacToe
 
         private void SmartAI()
         {
+            _configuredMaxDepth = AIConfigurator.Instance._aIConfigSO.ConfiguratedMaxDepth;
             //create simple copy of the board state as integers to reduce complexity of placing and removing tiles as game objects
             BoardState originalBoardState =
-                new(_playingField.TileMatrix, _playingField.PlayerPerTile)
-                {
-                    CurrentPlayer = _playingField.CurrentPlayer,
-                    CurrentRound = _playingField.Round,
-                };
+                new(_playingField.TileMatrix, _playingField.PlayerPerTile, _playingField);
 
             List<Tuple<int, int, int>> possibleMoves = new();
             for (int row = 0; row < originalBoardState.Board.GetLength(0); row++)
@@ -184,10 +176,7 @@ namespace TicTacToe
             }
 
             tracker.Stop();
-            _durationOfAlgorithm = tracker.ElapsedMilliseconds;
-
-            Debug.Log("Max Depth: " + _maxDepth);
-            Debug.Log(_durationOfAlgorithm + " ms");
+            DurationOfAlgorithm = tracker.ElapsedMilliseconds;
 
             TileScore? bestTile = null;
             tileScores.ForEach(tileScore =>
@@ -215,7 +204,7 @@ namespace TicTacToe
             Dictionary<string, int> bestMove =
                 new() { ["row"] = bestTile.Value.Row, ["col"] = bestTile.Value.Col };
 
-            if (GameManager.Instance.EnableLogging)
+            if (GameManager.EnableLogging)
                 tileScores.ForEach((tilescore) => tilescore.Board.PrintTree());
 
             GameObject bestMoveTile = _playingField.TileMatrix[bestMove["row"], bestMove["col"]];
@@ -234,7 +223,7 @@ namespace TicTacToe
             board.Board[move.Item1, move.Item2] = board.CurrentPlayer;
 
             BoardTree currentNode = board.CurrentNode;
-            if (GameManager.Instance.EnableLogging)
+            if (GameManager.EnableLogging)
                 board.AddStateToTree();
 
             score = MiniMax(
@@ -259,9 +248,6 @@ namespace TicTacToe
             int currentRound
         )
         {
-            if (depth > _maxDepth)
-                _maxDepth = depth;
-
             int winner = board.CheckForWin();
 
             if (
@@ -284,7 +270,7 @@ namespace TicTacToe
             }
 
             board.CurrentPlayer =
-                currentPlayer != GameManager.Instance.PlayerCount ? currentPlayer + 1 : 1;
+                currentPlayer != _playingField.GameConfig.PlayerAmount ? currentPlayer + 1 : 1;
             board.CurrentRound = currentRound + 1;
 
             List<Tuple<int, int, int>> possibleMoves = new();
@@ -385,9 +371,9 @@ namespace TicTacToe
         {
             //get all empty tiles
             List<GameObject> emptyTiles = new();
-            for (int row = 0; row < _playingField.GridWidth; row++)
+            for (int row = 0; row < _playingField.GameConfig.BoardSize; row++)
             {
-                for (int col = 0; col < _playingField.GridWidth; col++)
+                for (int col = 0; col < _playingField.GameConfig.BoardSize; col++)
                 {
                     if (_playingField.PlayerPerTile[_playingField.TileMatrix[row, col]] == null)
                         emptyTiles.Add(_playingField.TileMatrix[row, col]);

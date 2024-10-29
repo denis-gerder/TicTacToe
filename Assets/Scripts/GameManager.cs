@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace TicTacToe
@@ -13,37 +14,29 @@ namespace TicTacToe
         [SerializeField]
         private GameObject _tilePrefab;
 
-        [SerializeField]
-        [Range(2, 10)]
-        private int _width = 3;
-
-        [Range(2, 4)]
-        public int PlayerCount = 2;
-
-        public bool IsAiEnabled;
-
-        public AIDifficulty AiDifficulty;
-
-        public bool EnableLogging;
-
         public GameConfigSO _gameConfigSO;
 
-        public Grid PlayingField { get; private set; }
+        [SerializeField]
+        private GameConfig _gameConfig;
 
         [HideInInspector]
-        public bool GameOver { get; private set; }
+        public static bool GameOver { get; private set; }
+
+        public static bool EnableLogging { get; private set; }
 
         //Spawn Grid and populate player array
         private void Awake()
         {
             Instance = this;
-            PlayerCount = _gameConfigSO.PlayerAmount;
-            _width = _gameConfigSO.BoardSize;
-            IsAiEnabled = _gameConfigSO.AIEnabled;
-            AiDifficulty = _gameConfigSO.AIDifficulty;
+            _gameConfig = new GameConfig(
+                _gameConfigSO.PlayerAmount,
+                _gameConfigSO.BoardSize,
+                _gameConfigSO.AIEnabled,
+                _gameConfigSO.AIDifficulty
+            );
 
-            PlayingField = new Grid(_canvas, _tilePrefab, _width);
-            PlayingField.OnGameOver += HandleGameOver;
+            Grid playingField = new(_canvas, _tilePrefab, _gameConfig, _canvas.transform);
+            playingField.OnGameOver += HandleGameOver;
         }
 
         private void HandleGameOver(bool isGameWon, int player)
@@ -53,6 +46,28 @@ namespace TicTacToe
                 Debug.Log($"Player {player} won the game!");
             else
                 Debug.Log("Draw!");
+        }
+    }
+
+    [Serializable]
+    public readonly struct GameConfig
+    {
+        public readonly int PlayerAmount;
+        public readonly int BoardSize;
+        public readonly bool AIEnabled;
+        public readonly AIDifficulty AIDifficulty;
+
+        public GameConfig(
+            int playerAmount,
+            int boardSize,
+            bool AIEnabled,
+            AIDifficulty AIDifficulty
+        )
+        {
+            PlayerAmount = playerAmount;
+            BoardSize = boardSize;
+            this.AIEnabled = AIEnabled;
+            this.AIDifficulty = AIDifficulty;
         }
     }
 }

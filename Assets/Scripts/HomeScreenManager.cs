@@ -42,7 +42,7 @@ namespace TicTacToe
 
         private readonly Stack<GameObject> _screenHistory = new();
 
-        void Awake()
+        private void Awake()
         {
             Instance = this;
             _screenHistory.Push(_startSelection);

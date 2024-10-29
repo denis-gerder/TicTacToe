@@ -27,7 +27,7 @@ namespace TicTacToe
         private readonly Func<float, float> _easingFunction = x =>
             (float)-(Math.Cos(Math.PI * x) - 1) / 2;
 
-        public static event Action OnPlayerTilePlaced;
+        public static event Action<int> OnPlayerTilePlaced;
 
         private Grid _playingField;
 
@@ -77,9 +77,9 @@ namespace TicTacToe
         {
             //return if tile is already occupied or if AI is enabled and it's the AI's turn
             if (
-                (GameManager.Instance.IsAiEnabled && _playingField.CurrentPlayer != 1)
+                (_playingField.GameConfig.AIEnabled && _playingField.CurrentPlayer != 1)
                 || _playingField.PlayerPerTile[gameObject] != null
-                || GameManager.Instance.GameOver
+                || GameManager.GameOver
             )
             {
                 return;
@@ -106,7 +106,7 @@ namespace TicTacToe
                 _playingField.CurrentPlayer - 1
             ];
             _playingField.PlayerPerTile[gameObject] = playerTile;
-            OnPlayerTilePlaced?.Invoke();
+            OnPlayerTilePlaced?.Invoke(_playingField.CurrentPlayer);
         }
 
         public static IEnumerator FadeInVisual(

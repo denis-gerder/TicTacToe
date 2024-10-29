@@ -28,7 +28,7 @@ namespace TicTacToe
             _grid = playingField;
             _grid.OnTurnEnd += HandleTurnEnd;
 
-            int playerCount = GameManager.Instance.PlayerCount;
+            int playerCount = _grid.GameConfig.PlayerAmount;
 
             float screenWidth = transform.parent.GetComponent<RectTransform>().rect.width;
             for (int i = 0; i < playerCount; i++)

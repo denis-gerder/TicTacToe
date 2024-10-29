@@ -17,13 +17,17 @@ namespace TicTacToe
 
         public BoardTree CurrentNode;
 
-        private readonly Grid _playingField = GameManager.Instance.PlayingField;
+        private readonly Grid _playingField;
 
         public BoardState(
             GameObject[,] tileMatrix,
-            Dictionary<GameObject, GameObject> playerPerTile
+            Dictionary<GameObject, GameObject> playerPerTile,
+            Grid playingField
         )
         {
+            _playingField = playingField;
+            CurrentPlayer = playingField.CurrentPlayer;
+            CurrentRound = playingField.CurrentRound;
             Board = new int[tileMatrix.GetLength(0), tileMatrix.GetLength(1)];
             for (int row = 0; row < tileMatrix.GetLength(0); row++)
             {
@@ -249,7 +253,7 @@ namespace TicTacToe
                         CurrentPlayer != _playingField.CurrentPlayer
                         && player == _playingField.CurrentPlayer
                         && (
-                            CurrentPlayer != GameManager.Instance.PlayerCount
+                            CurrentPlayer != _playingField.GameConfig.PlayerAmount
                                 ? CurrentPlayer + 1
                                 : 1
                         ) == _playingField.CurrentPlayer
@@ -319,7 +323,7 @@ namespace TicTacToe
                         CurrentPlayer != _playingField.CurrentPlayer
                         && player == _playingField.CurrentPlayer
                         && (
-                            CurrentPlayer != GameManager.Instance.PlayerCount
+                            CurrentPlayer != _playingField.GameConfig.PlayerAmount
                                 ? CurrentPlayer + 1
                                 : 1
                         ) == _playingField.CurrentPlayer
@@ -416,7 +420,7 @@ namespace TicTacToe
                         CurrentPlayer != _playingField.CurrentPlayer
                         && player == _playingField.CurrentPlayer
                         && (
-                            CurrentPlayer != GameManager.Instance.PlayerCount
+                            CurrentPlayer != _playingField.GameConfig.PlayerAmount
                                 ? CurrentPlayer + 1
                                 : 1
                         ) == _playingField.CurrentPlayer
