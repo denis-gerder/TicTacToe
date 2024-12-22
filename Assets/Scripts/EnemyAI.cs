@@ -24,8 +24,12 @@ namespace TicTacToe
         public int _configuredMaxDepth;
         private Grid _playingField;
 
+        private bool _enableLogging;
+
         public void SetupPlayingFieldReference(Grid playingField)
         {
+            if (GameManager.Instance != null)
+                _enableLogging = GameManager.Instance.EnableLogging;
             _playingField = playingField;
             _currentDifficulty = _playingField.GameConfig.AIDifficulty;
             _playingField.OnTurnEnd += HandleTurnEnd;
@@ -204,7 +208,7 @@ namespace TicTacToe
             Dictionary<string, int> bestMove =
                 new() { ["row"] = bestTile.Value.Row, ["col"] = bestTile.Value.Col };
 
-            if (GameManager.EnableLogging)
+            if (_enableLogging)
                 tileScores.ForEach((tilescore) => tilescore.Board.PrintTree());
 
             GameObject bestMoveTile = _playingField.TileMatrix[bestMove["row"], bestMove["col"]];
@@ -223,7 +227,7 @@ namespace TicTacToe
             board.Board[move.Item1, move.Item2] = board.CurrentPlayer;
 
             BoardTree currentNode = board.CurrentNode;
-            if (GameManager.EnableLogging)
+            if (_enableLogging)
                 board.AddStateToTree();
 
             score = MiniMax(

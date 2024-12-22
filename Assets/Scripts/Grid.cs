@@ -43,6 +43,7 @@ namespace TicTacToe
             int gridWidth = GameConfig.BoardSize;
             _gridInstance = new GameObject("Grid");
             _gridInstance.transform.SetParent(parent, false);
+            _gridInstance.transform.SetAsFirstSibling();
             TileMatrix = new GameObject[gridWidth, gridWidth];
 
             float screenHeight = canvas.GetComponent<RectTransform>().rect.height;
@@ -81,7 +82,7 @@ namespace TicTacToe
             if (GameManager.Instance != null)
             {
                 _gridInstance
-                    .transform.parent.GetChild(0)
+                    .transform.parent.GetChild(1)
                     .GetComponent<PlayerHolderHandler>()
                     .SetupPlayingFieldReference(this);
             }
