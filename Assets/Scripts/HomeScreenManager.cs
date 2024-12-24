@@ -43,11 +43,6 @@ namespace TicTacToe
             dropdown.interactable = !dropdown.interactable;
         }
 
-        public void ChangeScene(SceneAsset nextScene)
-        {
-            SceneManager.LoadScene(nextScene.name);
-        }
-
         public void SaveConfigState()
         {
             _gameConfigSO.PlayerAmount = (int)_playerSlider.value;

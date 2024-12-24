@@ -5,5 +5,5 @@ public class AIConfigSO : ScriptableObject
 {
     public bool AIConfigurated = false;
 
-    public int ConfiguratedMaxDepth = 10;
+    public int ConfiguratedMaxDepth = 4;
 }

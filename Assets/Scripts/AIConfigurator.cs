@@ -60,7 +60,6 @@ namespace Scripts
                 transform
             );
             _testGridGO = transform.Find("Grid");
-            Debug.Log("allo");
             _testGridGO.SetSiblingIndex(0);
             TileHandler.OnPlayerTilePlaced += HandlePlayerTilePlaced;
             while (_timeForAI > 100f || _timeForAI < 10f)

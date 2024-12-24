@@ -26,6 +26,8 @@ namespace TicTacToe
 
         private bool _enableLogging;
 
+        private static readonly object _listLock = new();
+
         public void SetupPlayingFieldReference(Grid playingField)
         {
             if (GameManager.Instance != null)
@@ -131,56 +133,54 @@ namespace TicTacToe
 
             var tracker = Stopwatch.StartNew();
 
+            int toProcess = possibleMoves.Count;
             List<TileScore> tileScores = new();
-            foreach (var move in possibleMoves)
+            using (ManualResetEvent resetEvent = new(false))
             {
-                int row = move.Item1;
-                int col = move.Item2;
+                foreach (var move in possibleMoves)
+                {
+                    int row = move.Item1;
+                    int col = move.Item2;
 
-                ThreadPool.QueueUserWorkItem(
-                    worker =>
-                    {
-                        AsyncProps asyncProps = (AsyncProps)worker;
-
-                        //maximizing = true because its reverted in function (maximizing bezieht sich eigentlich auf den gesamten Zug vorher und die KI will ja eigentlich maximieren)
-                        SetupAndDoMiniMaxForMove(
-                            asyncProps.BoardStateCopy,
-                            move,
-                            -1,
-                            true,
-                            out float score
-                        );
-
-                        lock (asyncProps.TileScores)
+                    ThreadPool.QueueUserWorkItem(
+                        worker =>
                         {
-                            asyncProps.TileScores.Add(
-                                new TileScore(
-                                    asyncProps.Row,
-                                    asyncProps.Col,
-                                    score,
-                                    asyncProps.BoardStateCopy
-                                )
-                            );
-                        }
-                    },
-                    new AsyncProps(row, col, new BoardState(originalBoardState), tileScores)
-                );
-            }
+                            AsyncProps asyncProps = (AsyncProps)worker;
 
-            bool working = true;
-            ThreadPool.GetMaxThreads(out int maxWorkerThreads, out int maxCompletionPortThreads);
-            while (working)
-            {
-                ThreadPool.GetAvailableThreads(
-                    out int workerThreads,
-                    out int completionPortThreads
-                );
-                if (workerThreads == maxWorkerThreads)
-                    working = false;
+                            //maximizing = true because its reverted in function (maximizing bezieht sich eigentlich auf den gesamten Zug vorher und die KI will ja eigentlich maximieren)
+                            SetupAndDoMiniMaxForMove(
+                                asyncProps.BoardStateCopy,
+                                move,
+                                -1,
+                                true,
+                                out float score
+                            );
+
+                            lock (_listLock)
+                            {
+                                asyncProps.TileScores.Add(
+                                    new TileScore(
+                                        asyncProps.Row,
+                                        asyncProps.Col,
+                                        score,
+                                        asyncProps.BoardStateCopy
+                                    )
+                                );
+                                toProcess--;
+                                if (toProcess == 0)
+                                    resetEvent.Set();
+                            }
+                        },
+                        new AsyncProps(row, col, new BoardState(originalBoardState), tileScores)
+                    );
+                }
+
+                resetEvent.WaitOne();
             }
 
             tracker.Stop();
             DurationOfAlgorithm = tracker.ElapsedMilliseconds;
+            UnityEngine.Debug.Log(DurationOfAlgorithm);
 
             TileScore? bestTile = null;
             tileScores.ForEach(tileScore =>

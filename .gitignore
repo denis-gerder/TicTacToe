@@ -63,6 +63,8 @@ sysinfo.txt
 *.aab
 *.unitypackage
 *.app
+ProjectSettings/BurstAotSettings_StandaloneWindows.json
+ProjectSettings/CommonBurstAotSettings.json
 
 # Crashlytics generated file
 crashlytics-build.properties
