@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: AIConfigSO
   m_EditorClassIdentifier: 
   AIConfigurated: 1
-  ConfiguratedMaxDepth: 1000
+  ConfiguratedMaxDepth: 1

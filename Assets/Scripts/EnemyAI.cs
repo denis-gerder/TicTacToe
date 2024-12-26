@@ -1,8 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using Scripts;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -23,9 +24,7 @@ namespace TicTacToe
         public long DurationOfAlgorithm { get; private set; }
         public int _configuredMaxDepth;
         private Grid _playingField;
-
         private bool _enableLogging;
-
         private static readonly object _listLock = new();
 
         public void SetupPlayingFieldReference(Grid playingField)
@@ -45,9 +44,7 @@ namespace TicTacToe
                 || _playingField.CurrentPlayer == 1
                 || GameManager.GameOver
             )
-            {
                 return;
-            }
 
             if (_currentDifficulty == AIDifficulty.Random)
             {
@@ -63,13 +60,13 @@ namespace TicTacToe
             switch (_currentDifficulty)
             {
                 case AIDifficulty.Dumb:
-                    DumbAI();
+                    StartCoroutine(DumbAI());
                     break;
                 case AIDifficulty.Optimal:
-                    SmartAI();
+                    StartCoroutine(SmartAI());
                     break;
                 case AIDifficulty.OptimalWithRandomness:
-                    SmartAI();
+                    StartCoroutine(SmartAI());
                     break;
             }
         }
@@ -90,28 +87,7 @@ namespace TicTacToe
             }
         }
 
-        readonly struct AsyncProps
-        {
-            public readonly int Row;
-            public readonly int Col;
-            public readonly BoardState BoardStateCopy;
-            public readonly List<TileScore> TileScores;
-
-            public AsyncProps(
-                int row,
-                int col,
-                BoardState boardStateCopy,
-                List<TileScore> tileScores
-            )
-            {
-                this.Row = row;
-                this.Col = col;
-                this.BoardStateCopy = boardStateCopy;
-                this.TileScores = tileScores;
-            }
-        }
-
-        private void SmartAI()
+        private IEnumerator SmartAI()
         {
             _configuredMaxDepth = AIConfigurator.Instance._aIConfigSO.ConfiguratedMaxDepth;
             //create simple copy of the board state as integers to reduce complexity of placing and removing tiles as game objects
@@ -133,50 +109,28 @@ namespace TicTacToe
 
             var tracker = Stopwatch.StartNew();
 
-            int toProcess = possibleMoves.Count;
             List<TileScore> tileScores = new();
-            using (ManualResetEvent resetEvent = new(false))
+            int toProcess = possibleMoves.Count;
+
+            foreach (var move in possibleMoves)
             {
-                foreach (var move in possibleMoves)
+                int row = move.Item1;
+                int col = move.Item2;
+
+                Task.Run(() =>
                 {
-                    int row = move.Item1;
-                    int col = move.Item2;
+                    BoardState boardStateCopy = new(originalBoardState);
+                    SetupAndDoMiniMaxForMove(boardStateCopy, move, -1, true, out float score);
 
-                    ThreadPool.QueueUserWorkItem(
-                        worker =>
-                        {
-                            AsyncProps asyncProps = (AsyncProps)worker;
-
-                            //maximizing = true because its reverted in function (maximizing bezieht sich eigentlich auf den gesamten Zug vorher und die KI will ja eigentlich maximieren)
-                            SetupAndDoMiniMaxForMove(
-                                asyncProps.BoardStateCopy,
-                                move,
-                                -1,
-                                true,
-                                out float score
-                            );
-
-                            lock (_listLock)
-                            {
-                                asyncProps.TileScores.Add(
-                                    new TileScore(
-                                        asyncProps.Row,
-                                        asyncProps.Col,
-                                        score,
-                                        asyncProps.BoardStateCopy
-                                    )
-                                );
-                                toProcess--;
-                                if (toProcess == 0)
-                                    resetEvent.Set();
-                            }
-                        },
-                        new AsyncProps(row, col, new BoardState(originalBoardState), tileScores)
-                    );
-                }
-
-                resetEvent.WaitOne();
+                    lock (_listLock)
+                    {
+                        tileScores.Add(new TileScore(row, col, score, boardStateCopy));
+                        toProcess--;
+                    }
+                });
             }
+
+            yield return new WaitUntil(() => toProcess == 0);
 
             tracker.Stop();
             DurationOfAlgorithm = tracker.ElapsedMilliseconds;
@@ -200,9 +154,7 @@ namespace TicTacToe
                     Random.Range(0, tileScoresClone.Count)
                 ];
                 if (Random.Range(1, 11) <= 3)
-                {
                     bestTile = randomNonOptimal;
-                }
             }
 
             Dictionary<string, int> bestMove =
@@ -258,20 +210,13 @@ namespace TicTacToe
                 winner == 0
                 && board.CurrentRound == board.Board.GetLength(0) * board.Board.GetLength(1)
             )
-            {
                 return 0;
-            }
 
             if (winner != 0)
-            {
-                int score = winner == _playingField.CurrentPlayer ? 1 : -1;
-                return score;
-            }
+                return winner == _playingField.CurrentPlayer ? 1 : -1;
 
             if (depth >= _configuredMaxDepth)
-            {
                 return board.CheckForPrematureScore(isMaximizing);
-            }
 
             board.CurrentPlayer =
                 currentPlayer != _playingField.GameConfig.PlayerAmount ? currentPlayer + 1 : 1;
@@ -371,7 +316,7 @@ namespace TicTacToe
             }
         }
 
-        private void DumbAI()
+        private IEnumerator DumbAI()
         {
             //get all empty tiles
             List<GameObject> emptyTiles = new();
@@ -386,6 +331,8 @@ namespace TicTacToe
             //get random empty tile and place player tile with reference in grid
             GameObject emptyTile = emptyTiles[Random.Range(0, emptyTiles.Count)];
             emptyTile.GetComponent<TileHandler>().PlaceTile(emptyTile.transform);
+
+            yield return null;
         }
     }
 }

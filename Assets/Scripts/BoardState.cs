@@ -53,6 +53,7 @@ namespace TicTacToe
             Board = (int[,])boardState.Board.Clone();
             CurrentRound = boardState.CurrentRound;
             CurrentPlayer = boardState.CurrentPlayer;
+            _playingField = boardState._playingField;
             _root = new BoardTree();
             CurrentNode = _root;
         }
