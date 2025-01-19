@@ -6,8 +6,8 @@ set UNITY_VERSION=2021.3.21f1
 set UNITY_PROJECT_PATH=%cd%
 set BUILD_PATH=%cd%\..\TicTacToeBuild
 set UNITY_HUB_URL=https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe
-set UNITY_HUB_PATH="%ProgramFiles%\Unity Hub\Unity Hub.exe"
-set UNITY_EXE_PATH="%LOCALAPPDATA%\Unity\Hub\Editor\%UNITY_VERSION%\Editor\Unity.exe"
+set UNITY_HUB_PATH=%ProgramFiles%\Unity Hub\Unity Hub.exe
+set UNITY_EXE_PATH=%LOCALAPPDATA%\Unity\Hub\%UNITY_VERSION%\Editor\Unity.exe
 
 :: Check if Unity Hub is installed
 if not exist "%UNITY_HUB_PATH%" (
