@@ -188,5 +188,20 @@ namespace TicTacToe
         {
             SceneManager.LoadScene(sceneName);
         }
+
+        public void SetActiveAndUnActive(GameObject screen)
+        {
+            screen.SetActive(!screen.activeSelf);
+        }
+
+        public void PauseAndUnpauseGame()
+        {
+            Time.timeScale *= -1 + 1;
+        }
+
+        public void QuitGame()
+        {
+            Application.Quit();
+        }
     }
 }

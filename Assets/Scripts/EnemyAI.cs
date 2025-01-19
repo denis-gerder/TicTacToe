@@ -89,7 +89,8 @@ namespace TicTacToe
 
         private IEnumerator SmartAI()
         {
-            _configuredMaxDepth = AIConfigurator.Instance._aIConfigSO.ConfiguratedMaxDepth;
+            if (AIConfigurator.Instance != null)
+                _configuredMaxDepth = AIConfigurator.Instance._aIConfigSO.ConfiguratedMaxDepth;
             //create simple copy of the board state as integers to reduce complexity of placing and removing tiles as game objects
             BoardState originalBoardState =
                 new(_playingField.TileMatrix, _playingField.PlayerPerTile, _playingField);
@@ -215,8 +216,9 @@ namespace TicTacToe
             if (winner != 0)
                 return winner == _playingField.CurrentPlayer ? 1 : -1;
 
-            if (depth >= _configuredMaxDepth)
-                return board.CheckForPrematureScore(isMaximizing);
+            //for now disabled because persisting data is not implemented yet and the configurated ai depth would be reset on every game startup because of the incorrect usage of scriptable objects
+            //if (depth >= _configuredMaxDepth)
+            //return board.CheckForPrematureScore(isMaximizing);
 
             board.CurrentPlayer =
                 currentPlayer != _playingField.GameConfig.PlayerAmount ? currentPlayer + 1 : 1;
