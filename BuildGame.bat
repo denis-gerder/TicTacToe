@@ -2,7 +2,7 @@
 setlocal
 
 :: Define variables
-set UNITY_VERSION=2021.3.21f1
+set UNITY_VERSION=6000.3.1f1
 set UNITY_PROJECT_PATH=%cd%
 set BUILD_PATH=%cd%\..\TicTacToeBuild
 set UNITY_HUB_URL=https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe
