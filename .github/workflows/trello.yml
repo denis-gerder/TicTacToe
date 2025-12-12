@@ -1,0 +1,36 @@
+name: Trello
+
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+   branches: [ main ]
+  pull_request:
+   branches: [ main ]
+  #issues:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Link to Trello
+        uses: kagof/trello-link-github-action@v1.1.0
+        with:
+          # Required.
+          # Allowed to be one of the following:
+          # 1. the board name
+          # 2. the board shortLink (can be found in the URL)
+          # 3. the boardId (can be found via the Trello REST API)
+          board-identifier: "${{ secrets.BOARD_IDENTIFIER }}"
+          # Required
+          # Secret token used to contact Trello
+          trello-token: "${{ secrets.TRELLO_TOKEN }}"
+          # Optional (default 'TRELLO-')
+          # When preceding a string in a commit message or PR body or title,
+          # indicates that the string is a Trello shortId.
+          # May be either:
+          # 1. an alpha string, eg TRELLO
+          # 2. an alpha string followed by a dash, eg TRELLO-
+          # 3. one of the characters ! @ # $ % ^ & * + = (note: must be exactly 1 char long)
+          marker: 'T-'
