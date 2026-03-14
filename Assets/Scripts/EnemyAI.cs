@@ -23,11 +23,11 @@ namespace TicTacToe
         private AIDifficulty _currentDifficulty;
         public long DurationOfAlgorithm { get; private set; }
         public int _configuredMaxDepth;
-        private Grid _playingField;
+        private Board _playingField;
         private bool _enableLogging;
         private static readonly object _listLock = new();
 
-        public void SetupPlayingFieldReference(Grid playingField)
+        public void SetupPlayingFieldReference(Board playingField)
         {
             if (GameManager.Instance != null)
                 _enableLogging = GameManager.Instance.EnableLogging;
@@ -140,17 +140,17 @@ namespace TicTacToe
             TileScore? bestTile = null;
             tileScores.ForEach(tileScore =>
             {
-                if (bestTile == null || tileScore.Score > bestTile.Value.Score)
+                if (bestTile == null || tileScore.Score > bestTile?.Score)
                     bestTile = tileScore;
             });
             List<TileScore> tileScoresClone = tileScores;
-            tileScoresClone.RemoveAll(tileScore => tileScore.Score != bestTile.Value.Score);
+            tileScoresClone.RemoveAll(tileScore => tileScore.Score != bestTile?.Score);
             bestTile = tileScoresClone[Random.Range(0, tileScoresClone.Count)];
 
             if (_currentDifficulty == AIDifficulty.OptimalWithRandomness)
             {
                 tileScoresClone = tileScores;
-                tileScoresClone.RemoveAll(tileScore => tileScore.Score == bestTile.Value.Score);
+                tileScoresClone.RemoveAll(tileScore => tileScore.Score == bestTile?.Score);
                 TileScore randomNonOptimal = tileScoresClone[
                     Random.Range(0, tileScoresClone.Count)
                 ];

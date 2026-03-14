@@ -1,5 +1,4 @@
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace TicTacToe
@@ -15,6 +14,11 @@ namespace TicTacToe
         [SerializeField]
         private GameObject _tilePrefab;
 
+        [SerializeField]
+        private GameObject _boardTilePrefab;
+
+        [SerializeField]
+        private GameObject _boardPrefab;
         public GameConfigSO _gameConfigSO;
 
         [SerializeField]
@@ -23,6 +27,8 @@ namespace TicTacToe
         [SerializeField]
         private TMP_Text _endText;
 
+        [SerializeField]
+        private GameObject _mouseOverPrefab;
         private GameConfig _gameConfig;
 
         [HideInInspector]
@@ -30,8 +36,7 @@ namespace TicTacToe
 
         [SerializeField]
         private bool _enableLogging;
-
-        private Grid _playingField;
+        private Board _playingField;
 
         [HideInInspector]
         public bool EnableLogging
@@ -41,7 +46,7 @@ namespace TicTacToe
         }
 
         //Spawn Grid and populate player array
-        private void Awake()
+        private void Start()
         {
             Instance = this;
             _gameConfig = new GameConfig(
@@ -51,7 +56,8 @@ namespace TicTacToe
                 _gameConfigSO.AIDifficulty
             );
 
-            _playingField = new(_canvas, _tilePrefab, _gameConfig, _canvas.transform);
+            _playingField = Instantiate(_boardPrefab).GetComponent<Board>();
+            _playingField.SetCanvas(_canvas);
             _playingField.OnGameOver += HandleGameOver;
         }
 

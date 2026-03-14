@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -33,7 +32,7 @@ namespace TicTacToe
 
         public void HandleGoNextSlide(GameObject nextScreen)
         {
-            float screenWidth = GetComponent<RectTransform>().rect.width;
+            float screenWidth = gameObject.GetComponent<RectTransform>().rect.width;
 
             GameObject currentScreen = _screenHistory.Peek();
             StartCoroutine(
@@ -90,7 +89,7 @@ namespace TicTacToe
 
         public void GoBackOneSlide()
         {
-            float screenWidth = GetComponent<RectTransform>().rect.width;
+            float screenWidth = gameObject.GetComponent<RectTransform>().rect.width;
 
             GameObject currentScreen = _screenHistory.Pop();
             StartCoroutine(

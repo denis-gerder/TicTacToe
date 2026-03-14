@@ -2,7 +2,7 @@
 setlocal
 
 :: Define variables
-set UNITY_VERSION=6000.3.1f1
+set UNITY_VERSION=6000.3.8f1
 set UNITY_PROJECT_PATH=%cd%
 set BUILD_PATH=%cd%\..\TicTacToeBuild
 set UNITY_HUB_URL=https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe
@@ -56,7 +56,7 @@ if not exist "%BUILD_PATH%" (
 
 :: Run Unity in batch mode to build the project
 echo Building the Unity project for Windows...
-"%UNITY_EXE_PATH%" -quit -batchmode -projectPath "%UNITY_PROJECT_PATH%" -buildWindows64Player "%BUILD_PATH%\Game.exe" -nographics
+"%UNITY_EXE_PATH%" -quit -batchmode -projectPath "%UNITY_PROJECT_PATH%" -buildWindows64Player "%BUILD_PATH%\TicTacToe.exe" -nographics
 
 if %errorlevel% neq 0 (
     echo Build failed.
