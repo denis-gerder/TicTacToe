@@ -25,19 +25,21 @@ namespace TicTacToe
             _coroutineWatcher = null;
         }
 
-        public void EnqueueSequentally(params IEnumerator[] coroutines)
+        public CoroutineManager EnqueueSequentally(params IEnumerator[] coroutines)
         {
             foreach (var coroutine in coroutines)
             {
                 _coroutines.Enqueue(coroutine);
             }
             _coroutineWatcher ??= _monoBehaviour.StartCoroutine(watch());
+            return this;
         }
 
-        public void Enqueueparallel(params IEnumerator[] coroutines)
+        public CoroutineManager EnqueueParallel(params IEnumerator[] coroutines)
         {
             _coroutines.Enqueue(parallel(coroutines));
             _coroutineWatcher ??= _monoBehaviour.StartCoroutine(watch());
+            return this;
         }
 
         public void StopAndClearCoroutines()

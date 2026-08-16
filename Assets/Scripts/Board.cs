@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -49,6 +50,7 @@ namespace TicTacToe
         public GameConfigSO GameConfig;
 
         private GameObject _gridInstance;
+        private CoroutineManager _coroutineManager;
 
         //dictionary to keep track of which player placed a tile on which tile
         public Dictionary<GameObject, PlayerInfo?> PlayerPerTile = new();
@@ -58,22 +60,34 @@ namespace TicTacToe
         public List<MouseOverInfo> MouseOverObjects { get; private set; } = new();
         public event Action<bool, int> OnGameOver;
         public event Action OnTurnEnd;
+        public event Action OnBoardSetupFinished;
 
         //percentage 0.0f - 1.0f
-        private readonly float _percentageGridToScreen = 0.7f;
-        private readonly float _percentageGridToScreenHeight = 0.8f;
+        private readonly float _percentageWidthGridToScreen = 0.7f;
+        private readonly Func<float, float> _easingFunction = x => 1 - (float)Math.Pow(1 - x, 3);
 
         private void Start()
         {
+            _coroutineManager = new(this);
+            Mesh tileMesh = _boardTilePrefab.GetComponentInChildren<MeshFilter>().sharedMesh;
             int gridWidth = GameConfig.BoardSize;
-            float tileWidth = _boardTilePrefab
-                .GetComponentInChildren<MeshFilter>()
-                .sharedMesh.bounds.size.x;
+            float tileWidth = tileMesh.bounds.size.x;
+            GameObject boardFloor = transform.GetChild(0).gameObject;
+            MeshFilter floorMeshFilter = boardFloor.GetComponent<MeshFilter>();
+            float floorHeight = floorMeshFilter.sharedMesh.bounds.size.y;
+            float floorWidth = floorMeshFilter.sharedMesh.bounds.size.x;
+            float floorScale = gridWidth * tileWidth / floorWidth * 1.1f;
+            boardFloor.transform.localScale = new Vector3(floorScale, 1, floorScale);
+            boardFloor.transform.localPosition = new Vector3(
+                tileWidth * gridWidth / 2 - tileWidth / 2,
+                -floorHeight / 2,
+                tileWidth * gridWidth / 2 - tileWidth / 2
+            );
             _gridInstance = new GameObject("Grid");
             _gridInstance.transform.SetParent(transform, false);
-            IncreaseMouseOverObjects();
-            IncreaseMouseOverObjects();
             TileMatrix = new GameObject[gridWidth, gridWidth];
+
+            Mesh floorMesh = boardFloor.GetComponent<MeshFilter>().sharedMesh;
 
             for (int row = 0; row < gridWidth; row++)
             {
@@ -81,26 +95,43 @@ namespace TicTacToe
                 {
                     GameObject tileInstance = Instantiate(
                         _boardTilePrefab,
+                        new Vector3(
+                            row * tileWidth,
+                            boardFloor.transform.position.y
+                                - ((floorMesh.bounds.size.y / 2) + (tileMesh.bounds.size.y / 2)),
+                            col * tileWidth
+                        ),
+                        new Quaternion(),
                         _gridInstance.transform
                     );
-                    TileHandler tileHandlerInstance =
-                        tileInstance.GetComponentInChildren<TileHandler>();
+                    _coroutineManager.EnqueueSequentally(
+                        AnimationUtils.EasePropertyFloatOnObject(
+                            tileInstance.transform,
+                            "localPosition",
+                            _easingFunction,
+                            0.15f,
+                            tileInstance.transform.localPosition.y,
+                            boardFloor.transform.position.y
+                                + ((floorMesh.bounds.size.y / 2) + (tileMesh.bounds.size.y / 2)),
+                            "y"
+                        )
+                    );
+                    BoardTileInteractionHandler tileHandlerInstance =
+                        tileInstance.GetComponentInChildren<BoardTileInteractionHandler>();
                     tileHandlerInstance.SetupPlayingFieldReference(this);
+                    tileHandlerInstance.OnPlayerTilePlaced += HandlePlayerTilePlaced;
 
                     PlayerPerTile.Add(tileInstance, null);
                     TileMatrix[row, col] = tileInstance;
-
-                    tileInstance.transform.localPosition = new Vector3(
-                        row * tileWidth,
-                        0,
-                        col * tileWidth
-                    );
                 }
             }
 
-            CenterGrid(gridWidth, tileWidth, 1);
+            CenterCameraOverBoard(gridWidth, tileWidth);
 
-            TileHandler.OnPlayerTilePlaced += HandlePlayerTilePlaced;
+            _coroutineManager.EnqueueSequentally(
+                AnimationUtils.ActionAsCoroutine(() => OnBoardSetupFinished?.Invoke())
+            );
+
             _gridInstance.AddComponent<EnemyAI>().SetupPlayingFieldReference(this);
         }
 
@@ -128,28 +159,27 @@ namespace TicTacToe
                     {
                         continue;
                     }
-                    Object.Destroy(PlayerPerTile[TileMatrix[i, j]]?.PlayerTile);
+                    Destroy(PlayerPerTile[TileMatrix[i, j]]?.PlayerTile);
                     PlayerPerTile[TileMatrix[i, j]] = null;
                 }
             }
         }
 
-        private void CenterGrid(int gridWidth, float tileWidth, float tileScale)
+        private void CenterCameraOverBoard(int gridWidth, float tileWidth)
         {
-            float pixelGridWidth = gridWidth * tileScale * tileWidth;
-            float screenHeight = pixelGridWidth / _percentageGridToScreen;
-            _gridInstance.transform.localPosition = new Vector3(
-                (-pixelGridWidth / 2f) + (tileScale * tileWidth / 2f),
-                0,
-                (-pixelGridWidth / 2f)
-                    + (tileScale * tileWidth / 2f)
-                    - (
-                        screenHeight
-                        * (1 - _percentageGridToScreen)
-                        / 2f
-                        * ((_percentageGridToScreenHeight * 2) - 1)
-                    )
-            );
+            float halfGridLengthPosition =
+                _gridInstance.transform.position.x - tileWidth / 2 + gridWidth * tileWidth / 2;
+            Vector3 targetPosition =
+                new(
+                    halfGridLengthPosition,
+                    _gridInstance.transform.position.y,
+                    0.8f * halfGridLengthPosition //0.8f - magic number that also centers vertically
+                );
+            Camera camera = Camera.main;
+            float distance =
+                (1 / _percentageWidthGridToScreen * tileWidth * gridWidth)
+                / (2 * Mathf.Tan(camera.fieldOfView * Mathf.PI / 360));
+            camera.transform.position = targetPosition - (camera.transform.forward * distance);
         }
 
         private void HandlePlayerTilePlaced(int currentPlayer)

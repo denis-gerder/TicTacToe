@@ -165,7 +165,9 @@ namespace TicTacToe
                 tileScores.ForEach((tilescore) => tilescore.Board.PrintTree());
 
             GameObject bestMoveTile = _playingField.TileMatrix[bestMove["row"], bestMove["col"]];
-            bestMoveTile.GetComponent<TileHandler>().PlaceTile(bestMoveTile.transform);
+            bestMoveTile
+                .GetComponent<BoardTileInteractionHandler>()
+                .PlaceTile(bestMoveTile.transform);
         }
 
         private void SetupAndDoMiniMaxForMove(
@@ -332,7 +334,7 @@ namespace TicTacToe
             }
             //get random empty tile and place player tile with reference in grid
             GameObject emptyTile = emptyTiles[Random.Range(0, emptyTiles.Count)];
-            emptyTile.GetComponent<TileHandler>().PlaceTile(emptyTile.transform);
+            emptyTile.GetComponent<BoardTileInteractionHandler>().PlaceTile(emptyTile.transform);
 
             yield return null;
         }

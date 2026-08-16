@@ -9,10 +9,24 @@ using UnityEngine.UIElements;
 
 namespace TicTacToe
 {
+    public readonly struct PropertyToAnimate
+    {
+        public PropertyToAnimate(string propertyName, float minValue, float maxValue)
+        {
+            this.propertyName = propertyName;
+            this.minValue = minValue;
+            this.maxValue = maxValue;
+        }
+
+        public readonly string propertyName;
+        public readonly float minValue;
+        public readonly float maxValue;
+    }
+
     public class AnimationUtils
     {
         /// <summary>
-        ///
+        /// Can be used when property type is of type struct and is used only once inside object.
         /// </summary>
         public static IEnumerator EasePropertyFloatOnObject<PropertyType>(
             object objectWithProperty,
@@ -40,6 +54,10 @@ namespace TicTacToe
             );
         }
 
+        /// <summary>
+        /// Should be used when property type is used multiple times inside object or property is of type object.
+        /// </summary>
+        /// <param name="propertyName">Should be filled to specify which exact property should be changed.</param>
         public static IEnumerator EasePropertyFloatOnObject(
             object objectWithProperty,
             string propertyName,
@@ -62,6 +80,59 @@ namespace TicTacToe
                 maxValue,
                 fieldsToChange
             );
+        }
+
+        public static IEnumerator EasePropertyFloatOnObject(
+            object objectWithProperty,
+            string propertyName,
+            Func<float, float> easingFunction,
+            float duration,
+            params PropertyToAnimate[] propertiesToAnimate
+        )
+        {
+            PropertyInfo propertyInfo = objectWithProperty.GetType().GetProperty(propertyName);
+            object propertyOnObject = propertyInfo.GetValue(objectWithProperty);
+
+            float startingTime = Time.time;
+            while (Time.time - duration <= startingTime)
+            {
+                propertiesToAnimate
+                    .ToList()
+                    .ForEach(propertyToAnimate =>
+                    {
+                        FieldInfo fieldInfo = propertyOnObject
+                            .GetType()
+                            .GetField(propertyToAnimate.propertyName);
+                        fieldInfo.SetValue(
+                            propertyOnObject,
+                            CalculateEaseFloat(
+                                startingTime,
+                                easingFunction,
+                                duration,
+                                propertyToAnimate.minValue,
+                                propertyToAnimate.maxValue
+                            )
+                        );
+                        propertyInfo.SetValue(objectWithProperty, propertyOnObject);
+                    });
+                yield return null;
+            }
+            propertiesToAnimate
+                .ToList()
+                .ForEach(propertyToAnimate =>
+                    propertyOnObject
+                        .GetType()
+                        .GetField(propertyToAnimate.propertyName)
+                        .SetValue(
+                            propertyOnObject,
+                            Mathf.Lerp(
+                                propertyToAnimate.minValue,
+                                propertyToAnimate.maxValue,
+                                easingFunction(1)
+                            )
+                        )
+                );
+            propertyInfo.SetValue(objectWithProperty, propertyOnObject);
         }
 
         public static IEnumerator EasePropertyFloatOnObject(
@@ -89,7 +160,7 @@ namespace TicTacToe
                 {
                     fieldInfo.SetValue(
                         propertyOnObject,
-                        CalculateEasePosition(
+                        CalculateEaseFloat(
                             startingTime,
                             easingFunction,
                             duration,
@@ -110,7 +181,7 @@ namespace TicTacToe
             propertyInfo.SetValue(objectWithProperty, propertyOnObject);
         }
 
-        public static float CalculateEasePosition(
+        public static float CalculateEaseFloat(
             float startingTime,
             Func<float, float> easingFunction,
             float duration,
@@ -123,6 +194,12 @@ namespace TicTacToe
                 maxValue,
                 easingFunction((Time.time - startingTime) / duration)
             );
+        }
+
+        public static IEnumerator ActionAsCoroutine(Action action)
+        {
+            action();
+            yield break;
         }
     }
 }

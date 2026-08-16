@@ -15,3 +15,10 @@ MonoBehaviour:
   PlayerSymbols:
   - {fileID: 919132149155446097, guid: 0513d375738dfc14bbe81ba13601ca2f, type: 3}
   - {fileID: 919132149155446097, guid: 7c66684bab2458641a19e77e2a72b03a, type: 3}
+  - {fileID: 919132149155446097, guid: f91ad73c21f89a240ab8b96a388d46f0, type: 3}
+  - {fileID: 919132149155446097, guid: 21a06392f77a0de4c9775ba87173b452, type: 3}
+  AnimationControllersPerPlayer:
+  - {fileID: 9100000, guid: fd738e2127fc5f5499dfaffc2f993a5c, type: 2}
+  - {fileID: 9100000, guid: 2ff03812329a0fa489b63af7ca483639, type: 2}
+  - {fileID: 9100000, guid: fd738e2127fc5f5499dfaffc2f993a5c, type: 2}
+  - {fileID: 9100000, guid: fd738e2127fc5f5499dfaffc2f993a5c, type: 2}

@@ -9,178 +9,115 @@ namespace TicTacToe
     public class CommonScreenManager : MonoBehaviour
     {
         [SerializeField]
-        protected GameObject _startSelection;
+        protected GameObject _startScreen;
 
-        [SerializeField]
-        protected GameObject _backButtonSelection;
+        protected readonly Stack<GameObject> _screenHistory = new();
+        protected GameObject _currentScreen;
+        protected CoroutineManager _coroutineManager;
         private readonly Func<float, float> _easingFunction = x =>
             x < 0.5 ? 4 * x * x * x : 1 - ((float)Math.Pow((-2 * x) + 2, 3) / 2);
 
-        protected readonly Stack<GameObject> _screenHistory = new();
-
-        private GameObject _backButtonSelectionClone;
-
-        protected void Awake()
+        protected void Start()
         {
-            _screenHistory.Push(_startSelection);
-            if (_backButtonSelection != null)
-            {
-                _backButtonSelectionClone = Instantiate(_backButtonSelection, transform);
-                _backButtonSelectionClone.SetActive(false);
-            }
+            _coroutineManager = new(this);
+            _currentScreen = _startScreen;
         }
 
         public void HandleGoNextSlide(GameObject nextScreen)
         {
             float screenWidth = gameObject.GetComponent<RectTransform>().rect.width;
 
-            GameObject currentScreen = _screenHistory.Peek();
-            StartCoroutine(
-                EaseObjectPositionInOneDirection(
-                    currentScreen.GetComponent<RectTransform>(),
-                    _easingFunction,
-                    1f,
-                    Vector3.left,
-                    Vector3.zero,
-                    (int)screenWidth,
-                    new Action[] { () => currentScreen.SetActive(false) }
-                )
-            );
+            RectTransform nextScreenTransform = nextScreen.GetComponent<RectTransform>();
 
-            if (currentScreen != _startSelection)
+            List<IEnumerator> parallelCoroutines = new();
+
+            if (_currentScreen != null)
             {
-                StartCoroutine(
-                    EaseObjectPositionInOneDirection(
-                        _backButtonSelectionClone.GetComponent<RectTransform>(),
+                RectTransform currentScreenTransform = _currentScreen.GetComponent<RectTransform>();
+                parallelCoroutines.Add(
+                    AnimationUtils.EasePropertyFloatOnObject(
+                        currentScreenTransform,
+                        "localPosition",
                         _easingFunction,
-                        seconds: 1f,
-                        Vector3.left,
-                        Vector3.zero,
-                        (int)screenWidth,
-                        new Action[] { () => _backButtonSelectionClone.SetActive(false) }
+                        1f,
+                        0,
+                        -(int)screenWidth,
+                        "x"
                     )
                 );
             }
 
-            StartCoroutine(
-                EaseObjectPositionInOneDirection(
-                    _backButtonSelection.GetComponent<RectTransform>(),
+            parallelCoroutines.Add(
+                AnimationUtils.ActionAsCoroutine(() => nextScreen.SetActive(true))
+            );
+            parallelCoroutines.Add(
+                AnimationUtils.EasePropertyFloatOnObject(
+                    nextScreenTransform,
+                    "localPosition",
                     _easingFunction,
-                    seconds: 1f,
-                    Vector3.left,
-                    Vector3.right * (int)screenWidth,
+                    1f,
                     (int)screenWidth,
-                    null
+                    0,
+                    "x"
                 )
             );
-            StartCoroutine(
-                EaseObjectPositionInOneDirection(
-                    nextScreen.GetComponent<RectTransform>(),
-                    _easingFunction,
-                    seconds: 1f,
-                    Vector3.left,
-                    Vector3.right * (int)screenWidth,
-                    (int)screenWidth,
-                    null
-                )
+
+            _coroutineManager.EnqueueParallel(parallelCoroutines.ToArray());
+            if (_currentScreen != null)
+                _coroutineManager.EnqueueSequentally(
+                    AnimationUtils.ActionAsCoroutine(() => _currentScreen.SetActive(false)),
+                    AnimationUtils.ActionAsCoroutine(() => _screenHistory.Push(_currentScreen))
+                );
+            _coroutineManager.EnqueueSequentally(
+                AnimationUtils.ActionAsCoroutine(() => _currentScreen = nextScreen)
             );
-            _screenHistory.Push(nextScreen);
         }
 
         public void GoBackOneSlide()
         {
             float screenWidth = gameObject.GetComponent<RectTransform>().rect.width;
-
-            GameObject currentScreen = _screenHistory.Pop();
-            StartCoroutine(
-                EaseObjectPositionInOneDirection(
-                    currentScreen.GetComponent<RectTransform>(),
-                    _easingFunction,
-                    1f,
-                    Vector3.right,
-                    Vector3.zero,
-                    (int)screenWidth,
-                    new Action[] { () => currentScreen.SetActive(false) }
-                )
-            );
-            StartCoroutine(
-                EaseObjectPositionInOneDirection(
-                    _backButtonSelectionClone.GetComponent<RectTransform>(),
-                    _easingFunction,
-                    seconds: 1f,
-                    Vector3.right,
-                    Vector3.zero,
-                    (int)screenWidth,
-                    new Action[] { () => _backButtonSelectionClone.SetActive(false) }
-                )
-            );
-
-            GameObject previousScreen = _screenHistory.Peek();
-
-            if (previousScreen == _startSelection)
+            GameObject previousScreen = null;
+            List<IEnumerator> parallelCoroutines = new();
+            if (_screenHistory.Count > 0)
             {
-                _backButtonSelection.SetActive(false);
-                _backButtonSelection.GetComponent<RectTransform>().localPosition = Vector3.zero;
-            }
-            else
-            {
-                StartCoroutine(
-                    EaseObjectPositionInOneDirection(
-                        _backButtonSelection.GetComponent<RectTransform>(),
+                previousScreen = _screenHistory.Pop();
+                RectTransform previousScreenTransform =
+                    previousScreen.GetComponent<RectTransform>();
+                parallelCoroutines.Add(
+                    AnimationUtils.ActionAsCoroutine(() => previousScreen.SetActive(true))
+                );
+                parallelCoroutines.Add(
+                    AnimationUtils.EasePropertyFloatOnObject(
+                        previousScreenTransform,
+                        "localPosition",
                         _easingFunction,
-                        seconds: 1f,
-                        Vector3.right,
-                        Vector3.left * (int)screenWidth,
-                        (int)screenWidth,
-                        null
+                        1f,
+                        -(int)screenWidth,
+                        0,
+                        "x"
                     )
                 );
             }
 
-            StartCoroutine(
-                EaseObjectPositionInOneDirection(
-                    previousScreen.GetComponent<RectTransform>(),
+            RectTransform currentScreenTransform = _currentScreen.GetComponent<RectTransform>();
+
+            parallelCoroutines.Add(
+                AnimationUtils.EasePropertyFloatOnObject(
+                    currentScreenTransform,
+                    "localPosition",
                     _easingFunction,
-                    seconds: 1f,
-                    Vector3.right,
-                    Vector3.left * (int)screenWidth,
+                    1f,
+                    0,
                     (int)screenWidth,
-                    null
+                    "x"
                 )
             );
-        }
-
-        private IEnumerator EaseObjectPositionInOneDirection(
-            Transform objectTransform,
-            Func<float, float> easingFunction,
-            float seconds,
-            Vector3 direction,
-            Vector3 startPosition,
-            int moveByPixels,
-            Action[] methodList
-        )
-        {
-            float startingTime = Time.time;
-            float currentTime = startingTime;
-            objectTransform.localPosition = startPosition;
-            objectTransform.gameObject.SetActive(true);
-            while (currentTime - seconds <= startingTime)
-            {
-                Vector3 moveVector =
-                    easingFunction((currentTime - startingTime) / seconds)
-                    * moveByPixels
-                    * direction;
-                objectTransform.localPosition = startPosition + moveVector;
-
-                yield return 0;
-                currentTime = Time.time;
-            }
-            objectTransform.localPosition = startPosition + (direction * moveByPixels);
-            if (methodList?.Length > 0)
-            {
-                foreach (var method in methodList)
-                    method();
-            }
+            _coroutineManager
+                .EnqueueParallel(parallelCoroutines.ToArray())
+                .EnqueueSequentally(
+                    AnimationUtils.ActionAsCoroutine(() => _currentScreen.SetActive(false)),
+                    AnimationUtils.ActionAsCoroutine(() => _currentScreen = previousScreen)
+                );
         }
 
         public void ChangeScene(string sceneName)

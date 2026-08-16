@@ -64,23 +64,28 @@ namespace TicTacToe
         private void OnDestroy()
         {
             GameOver = false;
-            Instance._playingField.OnGameOver -= HandleGameOver;
+            _playingField.OnGameOver -= HandleGameOver;
         }
 
         private void HandleGameOver(bool isGameWon, int player)
         {
             GameOver = true;
-            Instance._endScreen.SetActive(true);
+            _endScreen.GetComponentInParent<CommonScreenManager>().HandleGoNextSlide(_endScreen);
             if (isGameWon)
             {
-                Instance._endText.text = $"Player {player} won the game!";
+                _endText.text = $"Player {player} won the game!";
                 Debug.Log($"Player {player} won the game!");
             }
             else
             {
-                Instance._endText.text = "Draw!";
+                _endText.text = "Draw!";
                 Debug.Log("Draw!");
             }
+        }
+
+        public Board GetPlayingField()
+        {
+            return _playingField;
         }
     }
 

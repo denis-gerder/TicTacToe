@@ -9,4 +9,6 @@ using UnityEngine;
 public class PlayerModelsSO : ScriptableObject
 {
     public List<GameObject> PlayerSymbols;
+
+    public List<RuntimeAnimatorController> AnimationControllersPerPlayer;
 }
