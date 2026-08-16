@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace TicTacToe
 {
@@ -17,12 +16,12 @@ namespace TicTacToe
 
         public BoardTree CurrentNode;
 
-        private readonly Grid _playingField;
+        private readonly Board _playingField;
 
         public BoardState(
             GameObject[,] tileMatrix,
-            Dictionary<GameObject, GameObject> playerPerTile,
-            Grid playingField
+            Dictionary<GameObject, PlayerInfo?> playerPerTile,
+            Board playingField
         )
         {
             _playingField = playingField;
@@ -36,11 +35,7 @@ namespace TicTacToe
                     Board[row, col] =
                         playerPerTile[tileMatrix[row, col]] == null
                             ? 0
-                            : playerPerTile[tileMatrix[row, col]]
-                                .transform.parent.GetComponent<TileHandler>()
-                                .PlayerConfigSo.PlayerSymbols.IndexOf(
-                                    playerPerTile[tileMatrix[row, col]].GetComponent<Image>().sprite
-                                ) + 1;
+                            : playerPerTile[tileMatrix[row, col]].Value.Player;
                 }
             }
 

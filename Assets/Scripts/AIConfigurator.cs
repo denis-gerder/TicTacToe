@@ -1,7 +1,7 @@
 using System.Collections;
 using TicTacToe;
 using UnityEngine;
-using Grid = TicTacToe.Grid;
+using Board = TicTacToe.Board;
 
 namespace Scripts
 {
@@ -17,7 +17,7 @@ namespace Scripts
         [SerializeField]
         private GameObject _tilePrefab;
 
-        private Grid _testGrid;
+        private Board _testGrid;
 
         private Transform _testGridGO;
 
@@ -52,34 +52,34 @@ namespace Scripts
 
         private IEnumerator ConfigureAI()
         {
-            _timeForAI = float.MaxValue;
-            _testGrid = new(
-                transform.parent.gameObject,
-                _tilePrefab,
-                new GameConfig(2, 10, true, AIDifficulty.Optimal),
-                transform
-            );
-            _testGridGO = transform.Find("Grid");
-            _testGridGO.SetSiblingIndex(0);
-            TileHandler.OnPlayerTilePlaced += HandlePlayerTilePlaced;
-            while (_timeForAI > 100f || _timeForAI < 10f)
-            {
-                _testGrid.Clear();
-                _testGridGO
-                    .GetChild(0)
-                    .GetComponent<TileHandler>()
-                    .PlaceTile(_testGridGO.GetChild(0));
-                yield return new WaitUntil(() => _gotDuration);
-                if (_timeForAI > 100f)
-                    _aIConfigSO.ConfiguratedMaxDepth--;
-                else if (_timeForAI > 10f)
-                    _aIConfigSO.ConfiguratedMaxDepth++;
-            }
-
-            _aIConfigSO.AIConfigurated = true;
-            Destroy(_testGridGO.gameObject);
-            gameObject.SetActive(false);
-            _visibleScreen.SetActive(true);
+            /*    _timeForAI = float.MaxValue;
+               _testGrid = new(
+                   transform.parent.gameObject,
+                   _tilePrefab,
+                   new GameConfig(2, 10, true, AIDifficulty.Optimal),
+                   transform
+               );
+               _testGridGO = transform.Find("Grid");
+               _testGridGO.SetSiblingIndex(0);
+               TileHandler.OnPlayerTilePlaced += HandlePlayerTilePlaced;
+               while (_timeForAI > 100f || _timeForAI < 10f)
+               {
+                   _testGrid.Clear();
+                   _testGridGO
+                       .GetChild(0)
+                       .GetComponent<TileHandler>()
+                       .PlaceTile(_testGridGO.GetChild(0));
+                   yield return new WaitUntil(() => _gotDuration);
+                   if (_timeForAI > 100f)
+                       _aIConfigSO.ConfiguratedMaxDepth--;
+                   else if (_timeForAI > 10f)
+                       _aIConfigSO.ConfiguratedMaxDepth++;
+               }
+   
+               _aIConfigSO.AIConfigurated = true;
+               Destroy(_testGridGO.gameObject);
+               gameObject.SetActive(false);
+               _visibleScreen.SetActive(true); */
             yield return null;
         }
 
